@@ -1,0 +1,51 @@
+configurable:
+
+spells that you are looking out for
+spells that you are willing to provide (not reserved)
+
+maintain list of available CDs
+
+------------
+PROTOCOL:
+
+GIVE - ask for a cd
+{
+	rid = random number to uniquify request
+	target = target of message, this is used to filter
+                 cross-realm requests which use RAID instead of WHISPER
+	spell = the desired spell we want cast on us
+	
+}
+
+NO - decline a cd request
+     this is issued when we are busy with a request already,
+     when the cd is on cooldown or otherwise unavailable.
+{
+	rid = mirrored request id
+	target = target of response
+}
+
+STATUS - update raid with available cds
+{
+	spells = {
+		spellid, charges, time, 
+		...(tuple repeats)
+
+		spellid = spell id 
+		charges = charges we have ready
+		time = time until another charge becomes available (add 1 to charges when time passes this)
+		
+	}
+
+}
+
+POLL - request status
+{
+}
+
+STATUS is given when:
+someone joins or leaves the party (add a delay!)
+if the status has lost track somehow (checked every 5 seconds)
+when a relevant spell goes on cooldown. SPELL_UPDATE_CHARGES, SPELL_UPDATE_COOLDOWN
+when a POLL message is received. (after a player reloads their UI)
+when a raid encounter starts

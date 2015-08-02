@@ -1,0 +1,11 @@
+## Interface: 60100
+## Title: Delleren
+## Notes: External defensive CD queries.
+## Author: mukunda
+## SavedVariablesPerCharacter: DellerenAddonSaved
+## OptionalDeps: Masque
+## Version: 0.1
+embeds.xml
+delleren.lua
+
+event_register.lua
