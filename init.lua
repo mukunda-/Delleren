@@ -35,6 +35,8 @@ function DellerenAddon:InitVars()
 		spell      = nil;   -- spellid we are asking for
 		list       = {};    -- list of userids that have cds available
 		unit       = nil;   -- unitid of person we want a cd from 
+		rid        = 0;     -- request id
+		buff       = false; -- if we are requesting a buff
 	}
 	
 	self.help = {
@@ -42,6 +44,11 @@ function DellerenAddon:InitVars()
 		unit   = nil;   -- unitid that is asking for the cd
 		spell  = nil;   -- spellid they are asking for
 		pulse  = 0;     -- time for the next pulse animation
+		rid    = 0;     -- request id
+	}
+	
+	self.statusmsg = {
+		active = false; -- if we are about to send a status message
 	}
 	
 	self.ani = {

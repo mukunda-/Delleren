@@ -268,7 +268,7 @@ end
 
 -------------------------------------------------------------------------------
 local function UnitLongRange( unit )
-	return UnitDistance( unit ) < 45 * 45 and IsItemInRange( 32698, unit )
+	return IsItemInRange( 34471, unit )
 end
 
 -------------------------------------------------------------------------------
@@ -292,33 +292,52 @@ end
 --
 -- @param ignore_reserve Don't return false if we have our CD reserved,
 --                       (check the cooldown only)
--- @param spell          A spell ID to check.
+-- @param list           List of spell IDs or item IDs to check. May be a 
+--                       single id number too.
+-- @param item           true if we are checking for items instead of spells.
 --
--- @returns true if one of the spells in the list is off cooldown.
+-- @returns nil if no spells or items are ready, or returns the id of one
+--          that is ready.
 --
-local function HasCDReady( ignore_reserve, spells )
+local function HasCDReady( ignore_reserve, list, item )
 	if not ignore_reserve and (self.help.active or self.unlocked) then
 		-- someone is already asking us!
-		return false
+		return nil
 	end
 	
 	if UnitIsDeadOrGhost( "player" ) then 
 		-- we are dead
-		return false end
+		return nil
 	end
 	
-	
-	if IsSpellKnown( spell ) then
-		local charges = GetSpellCharges( spell ) 
-		if charges ~= nil and charges >= 1 then return true end
-		
-		local start, duration, enable = GetSpellCooldown( spell )
-		if start == 0 then return true end
-		
-		-- if there is 1 second left on the cd, then it's ready enough
-		if duration - (GetTime() - start) < 1 then return true end
+	if type(list) == "number" then
+		list = {list}
 	end
 	
+	-- todo: spell reserves
+	
+	for k,v in ipairs( list ) do
+		if not item then
+			if IsSpellKnown( v ) then
+				local charges = GetSpellCharges( v ) 
+				if charges ~= nil and charges >= 1 then return true end
+				
+				local start, duration, enable = GetSpellCooldown( v )
+				if start == 0 then return true end
+				
+				-- if there is 1 second left on the cd, then it's ready enough
+				-- also uh, account for gcd time which may interfere
+				if duration - (GetTime() - start) < 1.6 then return true end
+			end
+		else
+			if GetItemCount( v ) > 0 then
+				local start, duration, enable = GetItemCooldown( v )
+				if start == 0 then return true end
+				
+				if duration - (GetTime() - start) < 1.6 then return true end
+			end
+		end
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -351,17 +370,52 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 	
 	if result == false then return end -- bad message
 	
-	if msg == "GIVE" then
+	if msg == "CHECK" then
+		-- player is checking if we have a cd ready
+		
+		local id = HasCDReady( false, data.id, data.item )
+		
+		if id then
+			self:RespondReady( sender, id )
+		end
+		
+	elseif msg == "READY" then
+		
+		if not self.query.active or data.rid ~= self.query.rid then 
+			return
+		end
+		
+		if data.target and not NameMatch( data.target, "player" ) then 
+		   return 
+		end
+		   
+		local unit = UnitIDFromName( sender )
+		if unit ~= nil and UnitLongRange( unit ) then
+		
+			table.insert( self.query.list, unit )
+			
+		else
+			-- out of range or cant find unit id
+		end
+		
+	elseif msg == "GIVE" then
 		-- player is asking for a CD
 		
-		if not NameMatch( data.target, "player" ) then return end
+		if data.target and 
+		   not NameMatch( data.target, "player" ) then return end
 		
-		if not HasCDReady( false, data.spell ) then
+		if not HasCDReady( false, data.id, data.item ) then
+		
 			self:DeclineCD( sender, data.rid )
+		else
+			self:ShowHelpRequest( sender, data.id, data.item, data.buff )
 		end
 
 	elseif msg == "NO" then
-		if not NameMatch( data.target, "player" ) then return end
+		-- player denied our cd request
+		
+		if data.target and 
+		   not NameMatch( data.target, "player" ) then return end
 		
 		if data.rid == self.query.request_id then
 			-- try again.
@@ -370,52 +424,23 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		
 	elseif msg == "STATUS" then
 		UpdateStatus( sender, data )
-	end
+	elseif msg == "POLL" then
+		SendStatus()
+	end  
+end
+
+-------------------------------------------------------------------------------
+function DellerenAddon:SendStatus()
+	if self.status.active then return end
 	
-	if message == "ASK" then
-		-- player is asking for a CD
-		
-		if sender == UnitName( "player" ) then
-			-- ignore ASK mirrored to self
-			return
-		end
-		
-		if HasCDReady() then
-			self:RespondReady( sender )
-		end
-		
-	elseif message == "READY" then
+	self.statusmsg.active = true
 	
-		if not g_query_active then return end
-		
-		local unit = UnitIDFromName( sender )
-		if unit ~= nil and UnitLongRange( unit ) then
-			table.insert( g_query_list, unit )
-			
-			if not g_query_requested and UnitShortRange( unit ) then
-				self:RequestCD()
-			end
-		else
-			-- out of range or cant find unit id
-		end
-		
-	elseif message == "CD" then
-		if not HasCDReady() then
-		
-			self:DeclineCD( sender )
-			return
-			
-		end
-		 
-		-- start cd request
-		
-		self:ShowHelpRequest( sender )
-		
-	elseif message == "NO" then
-		if sender == UnitName(g_query_unit) then
-			g_query_requested = false
-		end
-	end
+	self:ScheduleTimer( "SendStatusDelayed", 5 )
+end
+
+-------------------------------------------------------------------------------
+function DellerenAddon:SendStatusDelayed()
+	
 end
 
 -------------------------------------------------------------------------------
