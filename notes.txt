@@ -11,6 +11,8 @@ PROTOCOL:
 two ways to ask for a cd
 for cds that are shared via STATUS messages, these can be asked for directly with GIVE
 otherwise, CHECK/READY is used to populate a request list, and then followed by GIVE
+can also just do CHECK/READY without the GIVE part for when you just want to check
+if a certain spell or item is usable without calling for it.
 
 <crossrealm target> is only filled in when using RAID instead of WHISPER for cross-realm
 compatibility, it's just the name of the intended target of the message, its not there
@@ -60,6 +62,7 @@ STATUS - update raid with available cds
 		spellid = spell id 
 		charges = charges we have ready
 		time = time until another charge becomes available (add 1 to charges when time passes this)
+		       or 0 if its not on any cd
 		
 	}
 }
@@ -69,9 +72,8 @@ POLL - request status from everyone
 }
 
 STATUS is given when:
-someone joins or leaves the party (add a delay!)
-if the status has lost track somehow (checked every 5 seconds)
-when a relevant spell goes on cooldown. SPELL_UPDATE_CHARGES, SPELL_UPDATE_COOLDOWN
+someone joins or leaves the party 
+if the status changes (checked every second)
 when a POLL message is received. (after a player reloads their UI)
 when a raid encounter starts
 
