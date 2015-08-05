@@ -388,7 +388,7 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		if data.target and not NameMatch( data.target, "player" ) then 
 		   return 
 		end
-		   
+		
 		local unit = UnitIDFromName( sender )
 		if unit ~= nil and UnitLongRange( unit ) then
 		
@@ -423,7 +423,7 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		end
 		
 	elseif msg == "STATUS" then
-		UpdateStatus( sender, data )
+		RecordStatus( sender, data )
 	elseif msg == "POLL" then
 		SendStatus()
 	end  
@@ -606,7 +606,7 @@ function CDPlease:OnFrame()
 	if g_help_active then
 		self:OnHelpUpdate()
 	end
-
+	
 	self:UpdateAnimation()
 	
 	if not g_query_active and not g_help_active and g_ani_finished then
