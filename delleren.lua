@@ -444,7 +444,7 @@ function DellerenAddon:SendStatusDelayed()
 end
 
 -------------------------------------------------------------------------------
-function CDPlease:RespondReady( sender )
+function DellerenAddon:RespondReady( sender )
 	self:SendCommMessage( COMM_PREFIX, "READY", "WHISPER", sender ) 
 end
  
