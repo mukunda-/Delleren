@@ -22,7 +22,7 @@
 --g_frame:SetPoint( "CENTER", 0, 0 )
 
 
-local COMM_PREFIX  = "CDPLEASE"
+local COMM_PREFIX  = "DELLEREN"
 
 local QUERY_WAIT_TIME = 0.25   -- time to wait for cd responses
 local QUERY_TIMEOUT   = 1.8    -- time to give up query
@@ -48,7 +48,7 @@ local CD_MAP = {
 
 -------------------------------------------------------------------------------		  
 function DellerenAddon:OnInitialize()
-	SLASH_CDPLEASE1 = "/cdplease"
+	SLASH_DELLEREN1 = "/delleren"
 	
 	if not DellerenAddonSaved then
 		DellerenAddonSaved = {}
@@ -192,12 +192,12 @@ function Delleren:ShowText( caption )
 end
 
 -------------------------------------------------------------------------------
-function Delleren:HideText( caption )
+function DellerenAddon:HideText( caption )
 	self.frames.indicator.text:Hide()
 end
 
 -------------------------------------------------------------------------------
-function Delleren:Scale( size )
+function DellerenAddon:Scale( size )
 	
 	size = tonumber( size )
 	if size == nil then return end
@@ -358,12 +358,12 @@ local function NameMatch( name, unit )
 end
 
 -------------------------------------------------------------------------------
-function Delleren:OnInitialize()
+function DellerenAddon:OnInitialize()
 	self:RegisterComm( "DELLEREN" )
 end
 
 -------------------------------------------------------------------------------
-function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
+function DellerenAddon:OnCommReceived( prefix, packed_message, dist, sender )
 	if prefix ~= self.COMM_PREFIX then return end -- discard unwanted messages
 	
 	local result, msg, data = self:Deserialize( packed_message )
@@ -381,18 +381,16 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		
 	elseif msg == "READY" then
 		
-		if not self.query.active or data.rid ~= self.query.rid then 
-			return
-		end
-		
-		if data.target and not NameMatch( data.target, "player" ) then 
-		   return 
+		if not self.query.active or data.rid ~= self.query.rid or
+			(data.target and not NameMatch( data.target, "player" )) then 
+			
+			return -- invalid message
 		end
 		
 		local unit = UnitIDFromName( sender )
 		if unit ~= nil and UnitLongRange( unit ) then
 		
-			table.insert( self.query.list, unit )
+			table.insert( self.query.list, { unit = unit, id = data.id } )
 			
 		else
 			-- out of range or cant find unit id
@@ -444,38 +442,65 @@ function DellerenAddon:SendStatusDelayed()
 end
 
 -------------------------------------------------------------------------------
+local function CrossesRealm( name )
+	if string.find( name, "-" ) then
+		
+	end
+end
+
+-------------------------------------------------------------------------------
+function DellerenAddon:Comm( msg, dist, target, data )
+	
+	if CrossesRealm( target ) and dist == "WHISPER" then
+		dist = "RAID"
+		data.tar = target
+	end
+	
+	
+		
+end
+
+-------------------------------------------------------------------------------
 function DellerenAddon:RespondReady( sender )
 	self:SendCommMessage( COMM_PREFIX, "READY", "WHISPER", sender ) 
 end
  
 -------------------------------------------------------------------------------
--- Pop the top of the cd list and make a request.
+-- Pop the top of the query list and make a request. 
 --
--- @param sort Sort the list before popping it.
+-- @returns true if a request was made, false if it's already in progress
+--               or there are no more valid targets.
 --
-function CDPlease:RequestCD( sort )
+function DellerenAddon:RequestCD( sort )
 
-	if g_query_requested then return false end -- request already in progress
+	if self.query.requested then 
+		return false end -- request already in progress
 	
-	if #g_query_list == 0 then
+	if #self.query.list == 0 then
 		return false
 	end
-
-	if sort then
-		table.sort( g_query_list, 
-			function( a, b )
-				-- can't get much less efficient than this!
-				return UnitRangeValue(a) < UnitRangeValue(b)
-			end
-		) 
-	end
+ 
+	table.sort( self.query.list, 
+		function( a, b )
+			-- can't get much less efficient than this!
+			return RequestSort(a) < RequestSort(b)
+		end
+	)
 	
-	local unit = g_query_list[ #g_query_list ]
-	table.remove( g_query_list )
+	local request_data = self.query.list[ #self.query.list ]
+	table.remove( self.query.list )
 	
-	g_query_unit = unit
-	g_query_requested = true
-	g_query_time = GetTime()
+	self.query.unit      = request_data.unit
+	self.query.requested = true
+	self.query.time      = GetTime()
+	
+	local msg = {
+		rid  = self.query.rid;
+		buff = self.query.buff;
+		id   = request_data.id;
+	}
+	
+	self:Comm( "GIVE", "WHISPER", unit, msg )
 	
 	self:SendCommMessage( COMM_PREFIX, "CD", "WHISPER", UnitName( unit ))
 	
@@ -485,7 +510,7 @@ function CDPlease:RequestCD( sort )
 	if not g_help_active then
 		self:ShowText( UnitName( g_query_unit ))
 	end
-	 
+	
 	return true
 	
 end
