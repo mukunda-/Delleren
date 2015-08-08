@@ -22,13 +22,13 @@
 --g_frame:SetPoint( "CENTER", 0, 0 )
 
 
-local COMM_PREFIX  = "DELLEREN"
+local COMM_PREFIX = "DELLEREN"
 
-local QUERY_WAIT_TIME = 0.25   -- time to wait for cd responses
-local QUERY_TIMEOUT   = 1.8    -- time to give up query
-local CD_WAIT_TIMEOUT = 7.0    -- time to allow user to give us a cd
-local HARD_QUERY_TIMEOUT = 5.0 -- time for the query to stop even
-                               -- when there are options left!
+local QUERY_WAIT_TIME    = 0.25 -- time to wait for cd responses
+local QUERY_TIMEOUT      = 1.8  -- time to give up query
+local CD_WAIT_TIMEOUT    = 7.0  -- time to allow user to give us a cd
+local HARD_QUERY_TIMEOUT = 5.0  -- time for the query to stop even
+                                -- when there are options left!
 
 local CD_SPELLS = { 
 	102342; -- ironbark
@@ -122,7 +122,7 @@ function DellerenAddon:OnCombatLogEvent( event, ... )
 end
 
 -------------------------------------------------------------------------------
-function Delleren:Unlock()
+function DellerenAddon:UnlockFrames()
 	if self.unlocked then return end
 	
 	if UnitAffectingCombat( "player" ) then
@@ -148,7 +148,7 @@ function Delleren:Unlock()
 			if button == "LeftButton" then
 				self:StartMoving()
 			else
-				Delleren:Lock()
+				Delleren:LockFrames()
 			end
 		end)
 		
@@ -164,7 +164,7 @@ function Delleren:Unlock()
 	
 	self.frames.indicator:EnableMouse( true )
 	self.frames.indicator:Show()
-	self:ShowText( "Right click to lock." )
+	self:SetIndicatorText( "Right click to lock." )
 	self:frames.indicator:SetTextColor( 1, 1, 1, 1 )
 	
 	self.unlocked = true
@@ -172,7 +172,7 @@ function Delleren:Unlock()
 end
 
 -------------------------------------------------------------------------------
-function Delleren:Lock()
+function Delleren:LockFrames()
 	if not self.unlocked then return end
 	if not self.drag_stuff then return end
 	
@@ -180,19 +180,19 @@ function Delleren:Lock()
 	self.saved.locked = true
 	
 	self.drag_stuff.green:Hide()
-	self:HideText()
+	self:HideIndicatorText()
 	self.frames.indicator:EnableMouse( false )
 	self.frames.indicator:Hide()
 end
 
 -------------------------------------------------------------------------------
-function Delleren:ShowText( caption )
+function Delleren:SetIndicatorText( caption )
 	self.frames.indicator.text:SetText( caption )
 	self.frames.indicator.text:Show()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:HideText( caption )
+function DellerenAddon:HideIndicatorText( caption )
 	self.frames.indicator.text:Hide()
 end
 
@@ -217,17 +217,15 @@ function DellerenAddon:Scale( size )
 end
 
 -------------------------------------------------------------------------------
+-- Returns a raid or party unit id from a name given.
+--
 local function UnitIDFromName( name )
 	-- TODO check what format name is in!
 
-	for i = 1,40 do
-		local n  = UnitName( "raid" .. i )
-		if n ~= nil then
-			if n == name then return "raid" .. i end
-		end
-	end
+	local r = UnitInRaid( name )
+	if r ~= nil then return "raid" .. r end
 	
-	for i = 1,5 do
+	for i = 1,4 do
 		local n  = UnitName( "party" .. i )
 		if n ~= nil then
 			if n == name then return "party" .. i end
@@ -300,7 +298,7 @@ end
 --          that is ready.
 --
 local function HasCDReady( ignore_reserve, list, item )
-	if not ignore_reserve and (self.help.active or self.unlocked) then
+	if not ignore_reserve and (self.help.active) then
 		-- someone is already asking us!
 		return nil
 	end
@@ -339,22 +337,11 @@ local function HasCDReady( ignore_reserve, list, item )
 		end
 	end
 end
-
+ 
 -------------------------------------------------------------------------------
--- Returns true if a name, which may or may not have a realm appended
--- matches a unit's name.
---
-local function NameMatch( name, unit ) 
-	local n
-	if not string.find( name, "-" ) then
-		local _,r = UnitName( "player" )
-		name = name .. '-' .. r
-	end
-	
-	local n,r = UnitName( unit )
-	if n == nil then return false end
-	n = n .. '-' .. r
-	return n == name
+local function IgnoreCRMessage( data ) 
+	-- ignore cross realm message not intended for us
+	return data.tar and UnitGUID("player") ~= data.tar
 end
 
 -------------------------------------------------------------------------------
@@ -365,6 +352,9 @@ end
 -------------------------------------------------------------------------------
 function DellerenAddon:OnCommReceived( prefix, packed_message, dist, sender )
 	if prefix ~= self.COMM_PREFIX then return end -- discard unwanted messages
+	
+	sender = UnitIDFromName( sender )
+	if sender == nil then return end -- bad message
 	
 	local result, msg, data = self:Deserialize( packed_message )
 	
@@ -381,8 +371,8 @@ function DellerenAddon:OnCommReceived( prefix, packed_message, dist, sender )
 		
 	elseif msg == "READY" then
 		
-		if not self.query.active or data.rid ~= self.query.rid or
-			(data.target and not NameMatch( data.target, "player" )) then 
+		if not self.query.active or data.rid ~= self.query.rid 
+		   or IgnoreCRMessage(data) then 
 			
 			return -- invalid message
 		end
@@ -399,8 +389,7 @@ function DellerenAddon:OnCommReceived( prefix, packed_message, dist, sender )
 	elseif msg == "GIVE" then
 		-- player is asking for a CD
 		
-		if data.target and 
-		   not NameMatch( data.target, "player" ) then return end
+		if IgnoreCRMessage(data) then return end
 		
 		if not HasCDReady( false, data.id, data.item ) then
 		
@@ -408,23 +397,22 @@ function DellerenAddon:OnCommReceived( prefix, packed_message, dist, sender )
 		else
 			self:ShowHelpRequest( sender, data.id, data.item, data.buff )
 		end
-
+		
 	elseif msg == "NO" then
 		-- player denied our cd request
 		
-		if data.target and 
-		   not NameMatch( data.target, "player" ) then return end
-		
-		if data.rid == self.query.request_id then
-			-- try again.
-			self.query.requested = false
+		if IgnoreCRMessage(data) or data.rid ~= self.query.request_id then
+			return
 		end
+		
+		-- end current request and try for another target.
+		self.query.requested = false
 		
 	elseif msg == "STATUS" then
 		RecordStatus( sender, data )
 	elseif msg == "POLL" then
 		SendStatus()
-	end  
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -442,22 +430,27 @@ function DellerenAddon:SendStatusDelayed()
 end
 
 -------------------------------------------------------------------------------
-local function CrossesRealm( name )
-	if string.find( name, "-" ) then
-		
-	end
+local function CrossesRealm( unit )
+	local n,r = UnitName(unit)
+	if r ~= nil then return true end
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:Comm( msg, dist, target, data )
+function DellerenAddon:Comm( msg, data, dist, unit )
 	
-	if CrossesRealm( target ) and dist == "WHISPER" then
+	if unit ~= nil and dist == "WHISPER" and CrossesRealm( unit ) then
 		dist = "RAID"
-		data.tar = target
+		data.tar = UnitGUID( unit )
 	end
 	
+	local packed = self:Serialize( msg, data )
 	
-		
+	if dist == "WHISPER" then
+	
+		self:SendCommMessage( COMM_PREFIX, packed, dist, UnitName(unit) )
+	else
+		self:SendCommMessage( COMM_PREFIX, packed, dist )
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -473,13 +466,10 @@ end
 --
 function DellerenAddon:RequestCD( sort )
 
-	if self.query.requested then 
-		return false end -- request already in progress
-	
-	if #self.query.list == 0 then
-		return false
+	if self.query.requested or #self.query.list == 0 then 
+		return false  -- request already in progress or list is empty
 	end
- 
+	
 	table.sort( self.query.list, 
 		function( a, b )
 			-- can't get much less efficient than this!
@@ -494,59 +484,66 @@ function DellerenAddon:RequestCD( sort )
 	self.query.requested = true
 	self.query.time      = GetTime()
 	
-	local msg = {
+	local msgdata = {
 		rid  = self.query.rid;
 		buff = self.query.buff;
 		id   = request_data.id;
 	}
 	
-	self:Comm( "GIVE", "WHISPER", unit, msg )
-	
-	self:SendCommMessage( COMM_PREFIX, "CD", "WHISPER", UnitName( unit ))
+	self:Comm( "GIVE", msgdata, "WHISPER", unit ) 
 	
 	self:SetAnimation( "QUERY", "ASKING" )
 	self:PlaySound( "ASK" )
 	
-	if not g_help_active then
-		self:ShowText( UnitName( g_query_unit ))
+	if not self.help.active then
+		self:SetIndicatorText( UnitName( g_query_unit ))
 	end
 	
-	return true
-	
+	return true 
 end
 
 -------------------------------------------------------------------------------
 -- Decline giving a CD, sending a "NO" response
 --
--- @param caller Name of caller
+-- @param target Unit ID of person we are denying.
+-- @param rid    Request ID.
 --
-function CDPlease:DeclineCD( caller )
-	self:SendCommMessage( COMM_PREFIX, "NO", "WHISPER", caller )
+function DellerenAddon:DeclineCD( target, rid )
+	local data = { rid = rid }
+	self:Comm( "NO", data, "WHISPER", target )
 end
 
 -------------------------------------------------------------------------------
--- Request a CD from the raid.
+-- Start a new QUERY.
 --
-function CDPlease:CallCD()
-	if g_query_active then 
+-- @param list List of spell or item IDs to ask for.
+-- @param item true if we are requesting an item to be used.
+-- @param buff true if we expect the id to cast a buff on us. false if we
+--             just want them to use the spell or item without caring for
+--             the target.
+--
+function DellerenAddon:StartQuery( list, item, buff )
+	if self.query.active then 
 		-- query is in progress already
 		return
 	end
 	
-	CDPlease:Lock()
+	self.query.active        = true
+	self.query.time          = GetTime()
+	self.query.start_time    = g_query_time
+	self.query.requested     = false 
+	self.query.list          = {} 
+	self.query.request_id    = math.random( 1, 999999 )
 	
-	g_query_active        = true
-	g_query_time          = GetTime()
-	g_query_start_time    = g_query_time
-	g_query_requested     = false 
-	g_query_list          = {} 
-	
-	g_frame:Show()
+	self.frames.indicator:Show()
 	self:SetAnimation( "QUERY", "POLLING" )
 	
-	if not g_help_active then
-		self:HideText()
+	if not self.help.active then
+		self:HideIndicatorText()
 	end
+	
+	if 
+	self:Comm( "
 	
 	self:SendCommMessage( COMM_PREFIX, "ASK", "RAID" )
 	
@@ -684,7 +681,7 @@ function CDPlease:ShowHelpRequest( sender )
 	g_help_pulse  = GetTime() + 1
 	self:PlaySound( "HELP" )
 	
-	self:ShowText( UnitName( g_help_unit ))
+	self:SetIndicatorText( UnitName( g_help_unit ))
 	self:SetAnimation( "HELP", "HELP" )
 	g_frame:Show()
 	 
