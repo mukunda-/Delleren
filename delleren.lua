@@ -17,7 +17,7 @@
 -- orange+flash : cd request                obnoxious sound
 -- green+fade   : given					    good sound
 -- red+fade     : timed out! bad raider!    fail sound
- 
+
 
 --g_frame:SetPoint( "CENTER", 0, 0 )
 
