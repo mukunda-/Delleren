@@ -3,7 +3,7 @@
 -- External CD caller.
 -- (C) 2015 Mukunda Johnson (mukunda@mukunda.com)
 --
--- See LICENSE.TXT
+-- See LICENSE-DELLEREN.TXT
 -------------------------------------------------------------------------------
 -- version 1.1 beta
 -------------------------------------------------------------------------------
@@ -99,7 +99,7 @@ function DellerenAddon:OnCombatLogEvent( event, ... )
 				-- cd was cast on someone else! find another one!
 				self.query.requested = false
 			end
-		end 
+		end
 		
 		if self.help.active and sourceGUID == UnitGUID( "player" ) 
 		   and spellID == self.help.spell then
@@ -186,12 +186,6 @@ function Delleren:LockFrames()
 end
 
 -------------------------------------------------------------------------------
-function Delleren:SetIndicatorText( caption )
-	self.frames.indicator.text:SetText( caption )
-	self.frames.indicator.text:Show()
-end
-
--------------------------------------------------------------------------------
 function DellerenAddon:HideIndicatorText( caption )
 	self.frames.indicator.text:Hide()
 end
@@ -236,10 +230,12 @@ local function UnitIDFromName( name )
 end
 
 -------------------------------------------------------------------------------
-local function ColorLerp( r1,g1,b1,r2,g2,b2,a )
+local function ColorLerp( r1, g1, b1, r2, g2, b2, a )
 	a = math.min( a, 1 )
 	a = math.max( a, 0 )
-	return r1 + (r2-r1) * a, g1 + (g2-g1) * a, b1 + (b2-b1) * a
+	return r1 + (r2-r1) * a, 
+	       g1 + (g2-g1) * a, 
+		   b1 + (b2-b1) * a
 end
 
 -------------------------------------------------------------------------------
@@ -554,7 +550,7 @@ end
 
 -------------------------------------------------------------------------------
 function CDPlease:OnQueryUpdate()
-	local t = GetTime() - g_query_time
+	local t  = GetTime() - g_query_time
 	local t2 = GetTime() - g_query_start_time
 	 
 		
@@ -667,6 +663,7 @@ local SOUND_LIST = {
 	["GOOD"] = "Interface\\Addons\\cdplease\\sounds\\good.ogg";
 }
 
+-------------------------------------------------------------------------------
 function CDPlease:PlaySound( sound )
 	local s = SOUND_LIST[sound]
 	if s == nil then return end
@@ -684,7 +681,7 @@ function CDPlease:ShowHelpRequest( sender )
 	self:SetIndicatorText( UnitName( g_help_unit ))
 	self:SetAnimation( "HELP", "HELP" )
 	g_frame:Show()
-	 
+	
 	
 	self:EnableFrameUpdates()
 end

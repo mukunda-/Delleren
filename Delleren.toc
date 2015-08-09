@@ -6,6 +6,8 @@
 ## OptionalDeps: Masque
 ## Version: 0.1
 embeds.xml
+init.lua
 delleren.lua
+indicator.lua
 
-event_register.lua
+startup.lua

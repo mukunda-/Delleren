@@ -10,7 +10,28 @@ DellerenAddon = LibStub("AceAddon-3.0"):NewAddon( "Delleren",
 	             		  "AceComm-3.0", "AceEvent-3.0", "AceSerializer-3.0",
 						  "AceTimer-3.0" ) 
 	
-						  
+-------------------------------------------------------------------------------
+DellerenAddon.query = {
+	active     = false;	-- if we are currently asking for a cd
+	time       = 0;     -- time that we changed states
+	start_time = 0;     -- time that we started the query
+	requested  = false; -- if a cd is being requested
+	spell      = nil;   -- spellid we are asking for
+	list       = {};    -- list of userids that have cds available
+	unit       = nil;   -- unitid of person we want a cd from 
+	rid        = 0;     -- request id
+	buff       = false; -- if we are requesting a buff
+}
+
+-------------------------------------------------------------------------------
+DellerenAddon.help = {
+	active = false; -- if we are currently being asked for a cd
+	unit   = nil;   -- unitid that is asking for the cd
+	spell  = nil;   -- spellid they are asking for
+	pulse  = 0;     -- time for the next pulse animation
+	rid    = 0;     -- request id
+}
+			  
 -------------------------------------------------------------------------------
 function DellerenAddon:InitMasque()
 	local masque = LibStub( "Masque", true )
@@ -26,35 +47,9 @@ function DellerenAddon:InitVars()
 
 	self.frames = {}
 	
-	-- asking for a cd
-	self.query = {
-		active     = false;	-- if we are currently asking for a cd 
-		time       = 0;     -- time that we changed states
-		start_time = 0;     -- time that we started the query
-		requested  = false; -- if a cd is being requested
-		spell      = nil;   -- spellid we are asking for
-		list       = {};    -- list of userids that have cds available
-		unit       = nil;   -- unitid of person we want a cd from 
-		rid        = 0;     -- request id
-		buff       = false; -- if we are requesting a buff
-	}
-	
-	self.help = {
-		active = false; -- if we are currently being asked for a cd
-		unit   = nil;   -- unitid that is asking for the cd
-		spell  = nil;   -- spellid they are asking for
-		pulse  = 0;     -- time for the next pulse animation
-		rid    = 0;     -- request id
-	}
 	
 	self.statusmsg = {
 		active = false; -- if we are about to send a status message
-	}
-	
-	self.ani = {
-		state    = "NONE"; -- current animation that's playing
-		time     = 0;      -- time the animation started
-		finished = true;   -- true when a fade animation finishes
 	}
 	
 	self.drag_stuff = {}
@@ -115,6 +110,3 @@ function DellerenAddon:Setup()
 	self:InitMasque()
 	self:InitFrames() 
 end
-
--------------------------------------------------------------------------------
-DellerenAddon:Setup()
