@@ -25,7 +25,7 @@
 local COMM_PREFIX = "DELLEREN"
 
 local QUERY_WAIT_TIME    = 0.25 -- time to wait for cd responses
-local QUERY_TIMEOUT      = 1.8  -- time to give up query
+local QUERY_TIMEOUT      = 3.0  -- time to give up query
 local CD_WAIT_TIMEOUT    = 7.0  -- time to allow user to give us a cd
 local HARD_QUERY_TIMEOUT = 5.0  -- time for the query to stop even
                                 -- when there are options left!
