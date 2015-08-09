@@ -11,6 +11,12 @@ DellerenAddon.Status = {
 
 	-- indexed 1-4 in party (party1-4), and 1-40 in raid (raid1-40)
 	players = {} 
+	
+	-- players structure:
+	-- players
+	--   [1-40]
+	--     [spellid]
+	--        
 }
 
 local function GetPlayerIndex( unit )
