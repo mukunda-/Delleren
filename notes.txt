@@ -104,3 +104,17 @@ if the status changes (checked every second)
 
 when a status update is triggered by another player, wait 5 seconds before issuing the status message
 as to prevent abuse and possibly combine some future status update requests into one.
+
+-----
+
+
+indicator colors:
+ blue       : asking for cd               initialize sound
+ green+fade : cd received
+ red+fade   : failed to get a cd          fail sound
+---
+requests:
+ orange+flash : cd request                obnoxious sound
+ green+fade   : given					    good sound
+ red+fade     : timed out! bad raider!    fail sound
+

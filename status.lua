@@ -15,10 +15,15 @@ DellerenAddon.Status = {
 	-- players structure:
 	-- players
 	--   [1-40]
+	--     guid = player guid
 	--     [spellid]
-	--        
+	--
+	
+	-- list of registered spells
+	registered = {}
 }
 
+-------------------------------------------------------------------------------
 local function GetPlayerIndex( unit )
 	local a = UnitInRaid( unit )
 	if a ~= nil then return a end

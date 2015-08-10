@@ -1,10 +1,14 @@
 -------------------------------------------------------------------------------
 -- Delleren
--- External CD caller.
 -- (C) 2015 Mukunda Johnson (mukunda@mukunda.com)
---
 -- See LICENSE-DELLEREN.TXT
 -------------------------------------------------------------------------------
+
+local QUERY_WAIT_TIME    = 0.25 -- time to wait for cd responses
+local QUERY_TIMEOUT      = 3.0  -- time to give up query
+local CD_WAIT_TIMEOUT    = 7.0  -- time to allow user to give us a cd
+local HARD_QUERY_TIMEOUT = 5.0  -- time for the query to stop even
+                                -- when there are options left!
 
 DellerenAddon.Query = {
 	active     = false;	-- if we are currently asking for a cd
@@ -18,9 +22,8 @@ DellerenAddon.Query = {
 	buff       = false; -- if we are requesting a buff
 }
 
-
 -------------------------------------------------------------------------------
--- Start a new QUERY.
+-- Start a new query.
 --
 -- @param list List of spell or item IDs to ask for.
 -- @param item true if we are requesting an item to be used.
@@ -28,6 +31,33 @@ DellerenAddon.Query = {
 --             just want them to use the spell or item without caring for
 --             the target.
 --
-function DellerenAddon.Query:Start()
+function DellerenAddon.Query:Start( list, item, buff )
+	if self.active then return end -- query in progress already
+	 
+	self.active        = true
+	self.time          = GetTime()
+	self.start_time    = self.time
+	self.requested     = false 
+	self.list          = {} 
+	self.request_id    = math.random( 1, 999999 )
 	
+	DellerenAddon.Indicator:Show()
+	DellerenAddon.Indicator:SetAnimation( "QUERY", "POLLING" )
+	
+	if not self.help.active then
+		self:HideIndicatorText()
+	end
+	
+	local instant_list = {}
+	
+	if not item then
+		for k,v in ipairs(list) do
+			if registered
+		end
+	end
+	self:Comm( "
+	
+	self:SendCommMessage( COMM_PREFIX, "ASK", "RAID" )
+	
+	DellerenAddon:EnableFrameUpdates()
 end

@@ -7,28 +7,8 @@
 -------------------------------------------------------------------------------
 -- version 1.1 beta
 -------------------------------------------------------------------------------
-
--- indicator colors:
--- blue       : asking for cd               initialize sound
--- green+fade : cd received
--- red+fade   : failed to get a cd          fail sound
----
--- requests:
--- orange+flash : cd request                obnoxious sound
--- green+fade   : given					    good sound
--- red+fade     : timed out! bad raider!    fail sound
-
-
---g_frame:SetPoint( "CENTER", 0, 0 )
-
-
+ 
 local COMM_PREFIX = "DELLEREN"
-
-local QUERY_WAIT_TIME    = 0.25 -- time to wait for cd responses
-local QUERY_TIMEOUT      = 3.0  -- time to give up query
-local CD_WAIT_TIMEOUT    = 7.0  -- time to allow user to give us a cd
-local HARD_QUERY_TIMEOUT = 5.0  -- time for the query to stop even
-                                -- when there are options left!
 
 local CD_SPELLS = { 
 	102342; -- ironbark
@@ -519,33 +499,7 @@ end
 --             the target.
 --
 function DellerenAddon:StartQuery( list, item, buff )
-	if self.query.active then 
-		-- query is in progress already
-		return
-	end
 	
-	self.query.active        = true
-	self.query.time          = GetTime()
-	self.query.start_time    = g_query_time
-	self.query.requested     = false 
-	self.query.list          = {} 
-	self.query.request_id    = math.random( 1, 999999 )
-	
-	self.frames.indicator:Show()
-	self:SetAnimation( "QUERY", "POLLING" )
-	
-	if not self.help.active then
-		self:HideIndicatorText()
-	end
-	
-	if 
-	self:Comm( "
-	
-	self:SendCommMessage( COMM_PREFIX, "ASK", "RAID" )
-	
-	DoEmote( "helpme" )
-	
-	self:EnableFrameUpdates()
 end
 
 -------------------------------------------------------------------------------
@@ -563,7 +517,7 @@ function CDPlease:OnQueryUpdate()
 			g_query_active = false
 			return
 		end
-	
+		
 		if t2 >= QUERY_WAIT_TIME then
 			if not self:RequestCD() then
 				if t2 >= QUERY_TIMEOUT then
