@@ -64,7 +64,7 @@ NO (WHISPER) - Decline a cd request.
 STATUS (RAID) - Update raid with status
 {
 	cds = { -- available CDs
-	
+		
 		cds is a simple array of integers, each entry consist of a tuple of 4 integers
 		
 		spellid, duration, charges, max_charges, time 
@@ -78,29 +78,28 @@ STATUS (RAID) - Update raid with status
 		       or 0 if its not on cd
 		
 	}
-	reg = {
-		-- list of spell IDs that we are interested in tracking, this is hard limited to 16 ids
+	sub = {
+		-- list of spell IDs that we are interested in tracking (subscribing to), this is hard limited to 16 ids
 	}
 	poll = true if we want everyone to send a status message
 }
 
-spells that are "registered" allow players to access them faster by directly 
-calling for them rather than doing a CHECK first. A spell is "registered" when
-a single player in a party includes it in their "reg" list in their STATUS
-messages.
+spells that are "subscribed" allow players to access them faster by directly 
+calling for them rather than doing a CHECK first. A spell is registered for
+status updates when a single player in a party includes it in their "sub" list 
+in their STATUS messages.
 
 STATUS is sent when:
 a player joins a party (with poll=true to refresh everyone else)
 a player reloads their ui (with poll=true to refresh everyone else)
-a player's registered spell list changes
+a player's subscribed spell list changes
    this may cause a sequence of status messages, for example:
      player2 sends status, nothing changes
-     player1 sends status, player2 receives a spellid that is currently not "registered"
-     player2 sends another status with the info on the new registered spellid, that is, if they
-     know the spell
+     player1 sends status, player2 receives a spellid that is currently not "subscribed" to
+     player2 sends another status with the info on the new spellid, that is, if they
+      know the spell
 when a raid encounter starts
-when talents or spec is changed
-if the status changes (checked every second)
+when talents or spec is changed  
 
 when a status update is triggered by another player, wait 5 seconds before issuing the status message
 as to prevent abuse and possibly combine some future status update requests into one.

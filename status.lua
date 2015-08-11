@@ -45,4 +45,5 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 	local index = GetPlayerIndex( unit )
 	if index == nil then return end
 	
+	
 }
