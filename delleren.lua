@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Delleren
+-- DELLEREN
 -- External CD caller.
 -- (C) 2015 Mukunda Johnson (mukunda@mukunda.com)
 --
@@ -9,22 +9,6 @@
 -------------------------------------------------------------------------------
  
 local COMM_PREFIX = "DELLEREN"
-
-local CD_SPELLS = { 
-	102342; -- ironbark
-	114030; -- vigilance
-	122844; -- painsup
-	6940;   -- sac
---	116841; -- tigers lust (debug)
-}
-
-local CD_MAP = {
-	[102342] = "Ironbark";
-	[114030] = "Vigilance";
-	[122844] = "Pain Suppression";
-	[6940]   = "Hand of Sacrifice";
---	[116841] = "Tiger's Lust"; -- (debug)
-}
 
 -------------------------------------------------------------------------------		  
 function DellerenAddon:OnInitialize()
