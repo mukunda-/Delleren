@@ -33,7 +33,7 @@ local function GetPlayerIndex( unit )
 	if a ~= nil then return a end
 	if string.find( unit, "party" ) then
 		-- TODO find real name of these functions
-		return to_integer( string.sub( unit, 6 ) )
+		return tonumber( string.sub( unit, 6 ) )
 	end
 	
 	return nil
