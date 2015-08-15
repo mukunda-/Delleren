@@ -32,7 +32,7 @@ local function GetPlayerIndex( unit )
 	local a = UnitInRaid( unit )
 	if a ~= nil then return a end
 	if string.find( unit, "party" ) then
-		-- TODO find real name of these functions
+		
 		return tonumber( string.sub( unit, 6 ) )
 	end
 	
