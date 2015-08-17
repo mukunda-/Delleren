@@ -30,10 +30,10 @@ DellerenAddon.Query = {
 -- @param buff true if we expect the id to cast a buff on us. false if we
 --             just want them to use the spell or item without caring for
 --             the target.
---
+--*
 function DellerenAddon.Query:Start( list, item, buff )
 	if self.active then return end -- query in progress already
-	 
+	
 	self.active        = true
 	self.time          = GetTime()
 	self.start_time    = self.time
