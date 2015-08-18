@@ -90,10 +90,17 @@ function DellerenAddon:UpdateStatus()
 
 	local subs = {}
 	
+	for i = 1,40, do
+		if self.players[i] ~= nil then
+			local v = self.players[i]
+			--...
+		end
+	end
+	
 	for k,v in pairs( self.players ) do
 		
 		if v.guid ~= UnitGUID( "raid" .. k ) the
-		
+			
 		end
 		
 		for k2,v2 in ipairs( v.subs ) do
