@@ -84,26 +84,19 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 	if original.guid ~= p.guid then changed = true end
 	
 }
-
--------------------------------------------------------------------------------
-local function PrunePlayer( i )
-	if self.players[i] == nil then return end
-	
-	local p = self.players[i]
-	
-	if p.guid ~= UnitGUID( "raid" .. k ) the
-		self.players[i] = nil
-		return
-	end
-end
-
+ 
 -------------------------------------------------------------------------------
 function DellerenAddon:UpdateStatus()
 
 	local subs = {}
 	
 	for i = 1,40 do
-		PrunePlayer(i)
+		local p = self.players[i]
+		if p ~= nil then
+			if p.guid ~= UnitGUID( "raid" .. k ) the
+				self.players[i] = nil
+			end
+		end
 	end
 	
 	for k,v in pairs( self.players ) do
