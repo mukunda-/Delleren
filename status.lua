@@ -101,8 +101,6 @@ function DellerenAddon:UpdateStatus()
 	
 	for k,v in pairs( self.players ) do
 		
-		
-		
 		for k2,v2 in ipairs( v.subs ) do
 			subs[v2] = true
 		end
