@@ -54,6 +54,7 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 	if data.sub == nil then data.sub = {} end
 	if #data.sub > self.MAX_SUBS then return end
 	if UnitGUID( unit ) == nil then return end
+	if UnitGUID( unit ) == UnitGUID( "player" ) then return end
 	
 	-- convert data into friendly structure
 	local p = {
@@ -81,10 +82,15 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 	
 	local original = self.players[index]
 	
+	if not CompareStatus( p, original ) then
+		self.players[index] = original
+		self:UpdateStatus()
+	end
+	
 	if original.guid ~= p.guid then changed = true end
 	
 }
- 
+
 -------------------------------------------------------------------------------
 function DellerenAddon:UpdateStatus()
 
@@ -93,7 +99,7 @@ function DellerenAddon:UpdateStatus()
 	for i = 1,40 do
 		local p = self.players[i]
 		if p ~= nil then
-			if p.guid ~= UnitGUID( "raid" .. k ) the
+			if p.guid ~= UnitGUID( "raid" .. k ) then
 				self.players[i] = nil
 			end
 		end
