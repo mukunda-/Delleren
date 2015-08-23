@@ -14,16 +14,17 @@ DellerenAddon.Status = {
 	-- players
 	--   [1-40]
 	--     guid = player guid
-	--     subs = { subbed spells }
-	--     [spellid]
+	--     subs = { subbed spell ids, sorted }
+	--     spells[spellid] = { spell info: duration,charges,maxcharges,time }
 	--
 	
-	-- list of spells subscribed to by the raid
+	-- combined list of spells subscribed to by the raid
 	subs = {};
 	
 	-- subs filtered containing only spells that we know
 	filtered_subs = {};
 	
+	-- program options
 	MAX_SUBS = 16;
 }
 
@@ -37,6 +38,34 @@ local function GetPlayerIndex( unit )
 	end
 	
 	return nil
+end
+
+-------------------------------------------------------------------------------
+-- Compare two status blocks to see if they are the same.
+--
+-- @param a,b Two converted status messages.
+-- @returns true if they are different.
+--
+local function CompareStatus( a, b )
+	if a.guid ~= b.guid then return true end
+	
+	if #a.subs ~= #b.subs then
+		return true
+	end
+	
+	-- subs are sorted.
+	for i = 1,#a.subs do
+		if b.subs[i] ~= a.subs[i] then return true end
+	end
+	
+	for k,v in pairs( a.spells ) do
+		local v2 = b.spells[k]
+		if v2 == nil then return true end
+		
+		
+		if b.spells[k] == nil then return true end
+		if b.spells[
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -58,8 +87,9 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 	
 	-- convert data into friendly structure
 	local p = {
-		guid = UnitGUID( unit )
-		
+		guid   = UnitGUID( unit )
+		spells = {}
+		subs   = {}
 	}
 	
 	for i = 1,#data.cds,5 do
@@ -70,7 +100,7 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 					data.cds[i+3], data.cds[i+4]
 		
 		-- and store
-		p[ spellid ] = {
+		p.spells[ spellid ] = {
 			duration   = duration;
 			charges    = charges;
 			maxcharges = maxcharges;
@@ -78,22 +108,21 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 		}
 	end
 	
-	local changed = false
-	
-	local original = self.players[index]
-	
-	if not CompareStatus( p, original ) then
-		self.players[index] = original
-		self:UpdateStatus()
+	for k,v in ipairs( data.sub	) do
+		table.insert( p.subs, v )
 	end
 	
-	if original.guid ~= p.guid then changed = true end
+	table.sort( p.subs )
 	
+	if not CompareStatus( p, self.players[index] ) then
+		self.players[index] = p
+		self:Refresh()
+	end
 }
 
 -------------------------------------------------------------------------------
-function DellerenAddon:UpdateStatus()
-
+function DellerenAddon:Status.Refresh()
+	
 	local subs = {}
 	
 	for i = 1,40 do

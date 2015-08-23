@@ -52,6 +52,7 @@ GIVE (WHISPER) - Ask for a cd.
 	buff = true/false, if the spell or item is to be cast on us or just used.
 	id   = the desired item or spell we want them to cast
 	item = true if this is an item request, omitted/nil if not
+	msg  = a custom message to show with the request
 }
 
 NO (WHISPER) - Decline a cd request.
