@@ -12,7 +12,7 @@ DellerenAddon.Status = {
 	
 	-- players structure:
 	-- players
-	--   [1-40]
+	--   [1-40] or [1-4]
 	--     guid = player guid
 	--     subs = { subbed spell ids, sorted }
 	--     spells[spellid] = { spell info: duration,charges,maxcharges,time }
@@ -121,22 +121,38 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 }
 
 -------------------------------------------------------------------------------
+function DellerenAddon:Status.PrunePlayers()
+	if IsInRaid() then
+		for i = 1,40 do
+			local p = self.players[i]
+			if p ~= nil then
+				if p.guid ~= UnitGUID( "raid" .. k ) then
+					self.players[i] = nil
+				end
+			end
+		end
+	else
+		for i = 1,4 do
+			local p = self.players[i]
+			if p ~= nil then
+				if p.guid ~= UnitGUID( "party" .. k ) then
+					self.players[i] = nil
+				end
+			end
+		end
+	end
+end
+
+-------------------------------------------------------------------------------
 function DellerenAddon:Status.Refresh()
 	
 	local subs = {}
 	
-	for i = 1,40 do
-		local p = self.players[i]
-		if p ~= nil then
-			if p.guid ~= UnitGUID( "raid" .. k ) then
-				self.players[i] = nil
-			end
-		end
-	end
+	self:PrunePlayers()
 	
-	for k,v in pairs( self.players ) do
+	for _,p in pairs( self.players ) do
 		
-		for k2,v2 in ipairs( v.subs ) do
+		for k2,v2 in ipairs( p.subs ) do
 			subs[v2] = true
 		end
 		
