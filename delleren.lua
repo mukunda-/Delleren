@@ -302,6 +302,7 @@ end
 local function IgnoreCRMessage( data ) 
 	-- ignore cross realm message not intended for us
 	return data.tar and UnitGUID("player") ~= data.tar
+	
 end
 
 -------------------------------------------------------------------------------
