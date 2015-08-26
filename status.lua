@@ -12,17 +12,26 @@ DellerenAddon.Status = {
 	
 	-- players structure:
 	-- players
-	--   [1-40] or [1-4]
+	--   [1-40] or [1-4] (party)
 	--     guid = player guid
 	--     subs = { subbed spell ids, sorted }
-	--     spells[spellid] = { spell info: duration,charges,maxcharges,time }
+	--     spells[spellid] = { 
+	--                         duration;
+	--                         charges;
+	--                         maxcharges;
+	--                         time;
+    --                       }
+	--                         
 	--
 	
-	-- combined list of spells subscribed to by the raid
+	-- combined list of spells subscribed to by the raid, sorted
 	subs = {};
 	
-	-- subs filtered containing only spells that we know
-	filtered_subs = {};
+	-- subs filtered containing only spells that we know, sorted
+	fsubs = {};
+	
+	-- fsubs as a map indexed by spellid, subbed spells are set to true
+	fsubmap = {};
 	
 	-- program options
 	MAX_SUBS = 16;
@@ -47,25 +56,26 @@ end
 -- @returns true if they are different.
 --
 local function CompareStatus( a, b )
-	if a.guid ~= b.guid then return true end
+
+--	if a.guid ~= b.guid then return true end
+--	
+--	if #a.subs ~= #b.subs then
+--		return true
+--	end
+--	
+--	-- subs are sorted.
+--	for i = 1,#a.subs do
+--		if b.subs[i] ~= a.subs[i] then return true end
+--	end
 	
-	if #a.subs ~= #b.subs then
-		return true
-	end
-	
-	-- subs are sorted.
-	for i = 1,#a.subs do
-		if b.subs[i] ~= a.subs[i] then return true end
-	end
-	
-	for k,v in pairs( a.spells ) do
-		local v2 = b.spells[k]
-		if v2 == nil then return true end
-		
-		
-		if b.spells[k] == nil then return true end
-		if b.spells[
-	end
+--	for k,v in pairs( a.spells ) do
+--		local v2 = b.spells[k]
+--		if v2 == nil then return true end
+--		
+--		
+--		if b.spells[k] == nil then return true end
+--		if b.spells[
+--	end
 end
 
 -------------------------------------------------------------------------------
@@ -114,10 +124,10 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 	
 	table.sort( p.subs )
 	
-	if not CompareStatus( p, self.players[index] ) then
-		self.players[index] = p
-		self:Refresh()
-	end
+	--if not CompareStatus( p, self.players[index] ) then
+	self.players[index] = p
+	self:Refresh()
+	--end
 }
 
 -------------------------------------------------------------------------------
@@ -146,20 +156,44 @@ end
 -------------------------------------------------------------------------------
 function DellerenAddon:Status.Refresh()
 	
-	local subs = {}
+	local submap = {}
 	
 	self:PrunePlayers()
 	
 	for _,p in pairs( self.players ) do
 		
 		for k2,v2 in ipairs( p.subs ) do
-			subs[v2] = true
+			submap[v2] = true
 		end
 		
 	end
 	
+	local subs = {}
+	
+	for _,spell in pairs( submap ) do
+		table.insert( subs, spell )
+	end
+	
+	table.sort( subs )
+	self.subs = subs
+	
+	local mysubs = {}
+	local mysubmap = {}
+	
+	-- set to true if new (known) subs were added to our list
 	local newsubs = false
-	for k,v in pairs( subs ) do
-		if self.
-	end	
+	
+	for _,spell in ipairs( subs ) do
+		if IsSpellKnown( spell ) then
+			if not self.fsubsmap[spell] then
+				newsubs = true
+			end
+				
+			table.insert( mysubs, spell )
+			mysubmap[spell] = true
+		end
+	end
+	
+	-- if there are new subs, send a status response.
+	
 end
