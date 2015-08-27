@@ -35,6 +35,9 @@ DellerenAddon.Status = {
 	
 	-- program options
 	MAX_SUBS = 16;
+	
+	
+	sending = false;
 }
 
 -------------------------------------------------------------------------------
@@ -127,11 +130,15 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 	--if not CompareStatus( p, self.players[index] ) then
 	self.players[index] = p
 	self:Refresh()
+	
+	if data.poll then
+		self:Send()
+	end
 	--end
 }
 
 -------------------------------------------------------------------------------
-function DellerenAddon:Status.PrunePlayers()
+function DellerenAddon.Status:PrunePlayers()
 	if IsInRaid() then
 		for i = 1,40 do
 			local p = self.players[i]
@@ -154,7 +161,9 @@ function DellerenAddon:Status.PrunePlayers()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:Status.Refresh()
+-- Refresh the status data after receiving an update from a player.
+--
+function DellerenAddon.Status:Refresh()
 	
 	local submap = {}
 	
@@ -195,5 +204,31 @@ function DellerenAddon:Status.Refresh()
 	end
 	
 	-- if there are new subs, send a status response.
+	
+	if newsubs then
+		self:Send()
+	end
+end
+
+-------------------------------------------------------------------------------
+-- Send a status message to the raid. Will delay a while first.
+--
+function DellerenAddon.Status:Send()
+	if self.sending then return end
+	
+	self.sending = true
+	
+	DellerenAddon:ScheduleTimer( "SendStatusDelayed", 2 )
+end
+
+-------------------------------------------------------------------------------
+function DellerenAddon:SendStatusDelayed()
+	self.Status.SendDelayed()
+end
+
+-------------------------------------------------------------------------------
+-- Actual sending function, delayed.
+--
+function DellerenAddon.Status:SendDelayed()
 	
 end

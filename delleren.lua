@@ -385,10 +385,6 @@ function DellerenAddon:SendStatus()
 	self:ScheduleTimer( "SendStatusDelayed", 5 )
 end
 
--------------------------------------------------------------------------------
-function DellerenAddon:SendStatusDelayed()
-	
-end
 
 -------------------------------------------------------------------------------
 local function CrossesRealm( unit )
