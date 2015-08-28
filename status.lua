@@ -231,4 +231,8 @@ end
 --
 function DellerenAddon.Status:SendDelayed()
 	
+	-- build status message
+	
+	
+	-- send status message
 end
