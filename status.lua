@@ -203,8 +203,10 @@ function DellerenAddon.Status:Refresh()
 		end
 	end
 	
-	-- if there are new subs, send a status response.
+	self.fsubs   = mysubs
+	self.fsubmap = mysubmap
 	
+	-- if there are new subs, send a status response.
 	if newsubs then
 		self:Send()
 	end
