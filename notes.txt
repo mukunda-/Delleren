@@ -69,14 +69,13 @@ STATUS (RAID) - Update raid with status
 		cds is a simple array of integers, each entry consist of a tuple of 4 integers
 		
 		spellid, duration, charges, max_charges, time 
-		
-		
-		spellid = spell id 
-		duration = the duration of the spell's cooldown
-		charges = charges we have ready
+		 
+		spellid     = spell id 
+		duration    = the duration of the spell's cooldown
+		charges     = charges we have ready
 		max_charges = the maximum amount of charges we can have
-		time = time until another charge becomes available (add 1 to charges when time passes this)
-		       or 0 if its not on cd
+		time        = time until another charge becomes available (add 1 to charges when time passes this)
+		              or 0 if its not on cd
 		
 	}
 	sub = {

@@ -220,7 +220,7 @@ function DellerenAddon.Status:Send()
 	
 	self.sending = true
 	
-	DellerenAddon:ScheduleTimer( "SendStatusDelayed", 2 )
+	DellerenAddon:ScheduleTimer( "SendStatusDelayed", 5 )
 end
 
 -------------------------------------------------------------------------------
@@ -234,7 +234,28 @@ end
 function DellerenAddon.Status:SendDelayed()
 	
 	-- build status message
+	local data = {}
 	
+	data.cds = {}
+	
+	for _,spellid in ipairs(self.fsubs) do
+		if IsSpellKnown( spellid ) then
+			local start,duration,enable = GetSpellCooldown( spellid )
+			
+			local v1,v2,v3,v4,v5
+			v1 = spellid
+			
+			if duration <= 1.51 then 
+				-- it is off cooldown, or it is a GCD cooldown 
+				--                         (treat as off still)
+				
+				
+			else
+				
+			end
+			
+		end
+	end
 	
 	-- send status message
 end
