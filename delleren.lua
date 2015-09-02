@@ -375,24 +375,23 @@ function DellerenAddon:OnCommReceived( prefix, packed_message, dist, sender )
 		SendStatus()
 	end
 end
-
--------------------------------------------------------------------------------
-function DellerenAddon:SendStatus()
-	if self.status.active then return end
-	
-	self.statusmsg.active = true
-	
-	self:ScheduleTimer( "SendStatusDelayed", 5 )
-end
-
-
+ 
 -------------------------------------------------------------------------------
 local function CrossesRealm( unit )
 	local n,r = UnitName(unit)
-	if r ~= nil then return true end
+	return r ~= nil
 end
 
 -------------------------------------------------------------------------------
+-- Send a message to other players.
+--
+-- Handles cross-realm compatibility workarounds.
+--
+-- @param msg  Message type string
+-- @param data Message data block
+-- @param dist Distribution type.
+-- @param unit WHISPER distribution target.
+--
 function DellerenAddon:Comm( msg, data, dist, unit )
 	
 	if unit ~= nil and dist == "WHISPER" and CrossesRealm( unit ) then
