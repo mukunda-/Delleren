@@ -33,11 +33,14 @@ DellerenAddon.Status = {
 	-- fsubs as a map indexed by spellid, subbed spells are set to true
 	fsubmap = {};
 	
+	-- spells that we have subscribed to
+	mysubs = {};
+	
 	-- program options
 	MAX_SUBS = 16;
 	
-	
 	sending = false;
+	poll    = false;
 }
 
 -------------------------------------------------------------------------------
@@ -126,15 +129,13 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 	end
 	
 	table.sort( p.subs )
-	
-	--if not CompareStatus( p, self.players[index] ) then
+	 
 	self.players[index] = p
 	self:Refresh()
 	
 	if data.poll then
 		self:Send()
-	end
-	--end
+	end 
 }
 
 -------------------------------------------------------------------------------
@@ -215,10 +216,11 @@ end
 -------------------------------------------------------------------------------
 -- Send a status message to the raid. Will delay a while first.
 --
-function DellerenAddon.Status:Send()
+function DellerenAddon.Status:Send( poll )
 	if self.sending then return end
 	
 	self.sending = true
+	self.poll    = poll
 	
 	DellerenAddon:ScheduleTimer( "SendStatusDelayed", 5 )
 end
@@ -237,6 +239,8 @@ function DellerenAddon.Status:SendDelayed()
 	local data = {}
 	
 	data.cds = {}
+	data.sub = {}
+	data.poll = self.poll
 	
 	for _,spellid in ipairs(self.fsubs) do
 		if IsSpellKnown( spellid ) then
@@ -244,6 +248,15 @@ function DellerenAddon.Status:SendDelayed()
 			
 			local v1,v2,v3,v4,v5
 			v1 = spellid
+			
+			 -- TODO, get actual CD including talents and stuff
+			v2 = GetSpellBaseCooldown( spellid )
+			
+			do
+				local charges, maxcharges, start, duration = GetSpellCharges( spellid )
+				-- todo
+				
+			end
 			
 			if duration <= 1.51 then 
 				-- it is off cooldown, or it is a GCD cooldown 
@@ -254,8 +267,18 @@ function DellerenAddon.Status:SendDelayed()
 				
 			end
 			
+			table.insert( data.cds, v1 )
+			table.insert( data.cds, v2 )
+			table.insert( data.cds, v3 )
+			table.insert( data.cds, v4 )
+			table.insert( data.cds, v5 )
 		end
 	end
 	
 	-- send status message
+	for _,spellid in ipairs( self.mysubs ) do
+		table.insert( data.sub, spellid )
+	end
+	
+	DellerenAddon:Comm( "STATUS", data, "RAID" )
 end
