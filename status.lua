@@ -26,6 +26,7 @@ DellerenAddon.Status = {
 	
 	-- combined list of spells subscribed to by the raid, sorted
 	subs = {};
+	submap = {};
 	
 	-- subs filtered containing only spells that we know, sorted
 	fsubs = {};
@@ -193,6 +194,8 @@ function DellerenAddon.Status:Refresh()
 	-- set to true if new (known) subs were added to our list
 	local newsubs = false
 	
+	-- build the new filtered sub list and map
+	-- if there are new spells that werent there before, set the newsubs flag
 	for _,spell in ipairs( subs ) do
 		if IsSpellKnown( spell ) then
 			if not self.fsubsmap[spell] then
@@ -244,34 +247,57 @@ function DellerenAddon.Status:SendDelayed()
 	
 	for _,spellid in ipairs(self.fsubs) do
 		if IsSpellKnown( spellid ) then
-			local start,duration,enable = GetSpellCooldown( spellid )
 			
-			local v1,v2,v3,v4,v5
-			v1 = spellid
 			
-			 -- TODO, get actual CD including talents and stuff
-			v2 = GetSpellBaseCooldown( spellid )
+			-- spellid, duration, charges, maxcharges, time 
+			local sp_id, sp_duration, sp_charges, sp_maxcharges, sp_time
+			sp_id = spellid
 			
 			do
-				local charges, maxcharges, start, duration = GetSpellCharges( spellid )
+				local cd_start, cd_duration = GetSpellCooldown( spellid )
+				sp_duration = GetSpellBaseCooldown( spellid )
+				
+				-- TODO, get actual CD including talents and stuff
+				
+				local charges, maxcharges, start, duration2 = GetSpellCharges( spellid )
 				-- todo
 				
+				if charges ~= nil then
+					-- charge based spell
+					
+					sp_duration   = duration2
+					sp_charges    = charges
+					sp_maxcharges = maxcharges
+					if charges ~= maxcharges then
+						v5 = start + duration
+					else
+						v5 = 0
+					end
+				else
+					-- normal spell
+					
+					if cd_duration <= 1.51 then 
+						-- it is off cooldown, or it is a GCD cooldown 
+						--                         (treat as off still)
+						
+						sp_charges = 1
+						sp_time = 0
+					else
+						sp_charges = 0
+						sp_time = cd_start + cd_duration
+						sp_duration = cd_duration
+					end
+					
+					sp_maxcharges = 1
+				end
 			end
 			
-			if duration <= 1.51 then 
-				-- it is off cooldown, or it is a GCD cooldown 
-				--                         (treat as off still)
-				
-				
-			else
-				
-			end
 			
-			table.insert( data.cds, v1 )
-			table.insert( data.cds, v2 )
-			table.insert( data.cds, v3 )
-			table.insert( data.cds, v4 )
-			table.insert( data.cds, v5 )
+			table.insert( data.cds, sp_spellid    )
+			table.insert( data.cds, sp_duration   )
+			table.insert( data.cds, sp_charges    )
+			table.insert( data.cds, sp_maxcharges )
+			table.insert( data.cds, sp_time       )
 		end
 	end
 	
@@ -281,4 +307,33 @@ function DellerenAddon.Status:SendDelayed()
 	end
 	
 	DellerenAddon:Comm( "STATUS", data, "RAID" )
+end
+
+-------------------------------------------------------------------------------
+-- Returns true if a spell is subbed by the raid.
+--
+function DellerenAddon.Status:IsSubbed( spell )
+	return self.submap[spell]
+end
+
+-------------------------------------------------------------------------------
+-- Called when a spell is used by a player.
+--
+-- @param spell ID of spell used.
+-- @param unit UnitID of player.
+--
+function DellerenAddon.Status:OnSpellUsed( spell, unit )
+
+	local index = GetPlayerIndex( unit )
+	if index == -1 then
+	local p = self.players[index]
+	if p ~= nil then
+		local sp = p.spells[spell]
+		if sp then
+			sp.charges = sp.charges - 1
+			if sp.charges < 0 then sp.charges = 0 end
+			if sp.time >
+		end
+	end
+	
 end

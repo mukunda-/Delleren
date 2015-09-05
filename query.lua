@@ -30,7 +30,7 @@ DellerenAddon.Query = {
 -- @param buff true if we expect the id to cast a buff on us. false if we
 --             just want them to use the spell or item without caring for
 --             the target.
---*
+--
 function DellerenAddon.Query:Start( list, item, buff )
 	if self.active then return end -- query in progress already
 	
@@ -49,11 +49,22 @@ function DellerenAddon.Query:Start( list, item, buff )
 	end
 	
 	local instant_list = {}
+	local check_list   = {}
 	
 	if not item then
-		for k,v in ipairs(list) do
-			if registered
+		for k,spell in ipairs(list) do
+			if self.Status:IsSubbed( spell ) then
+				table.insert( instant_list, spell )
+			else
+				table.insert( check_list, spell )
+			end
 		end
+	end
+	
+	if #instant_list > 0 then
+		-- do an instant request
+		
+		
 	end
 	self:Comm( "
 	

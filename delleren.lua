@@ -590,21 +590,6 @@ function CDPlease:NoCDAvailable()
 end
 
 -------------------------------------------------------------------------------
-local SOUND_LIST = {
-	["FAIL"] = "Interface\\Addons\\cdplease\\sounds\\fail.ogg";
-	["ASK"]  = "Interface\\Addons\\cdplease\\sounds\\ask.ogg";
-	["HELP"] = "Interface\\Addons\\cdplease\\sounds\\help.ogg";
-	["GOOD"] = "Interface\\Addons\\cdplease\\sounds\\good.ogg";
-}
-
--------------------------------------------------------------------------------
-function CDPlease:PlaySound( sound )
-	local s = SOUND_LIST[sound]
-	if s == nil then return end
-	PlaySoundFile( s, "Master" )
-end
-
--------------------------------------------------------------------------------
 function CDPlease:ShowHelpRequest( sender )
 	g_help_active = true
 	g_help_unit   = UnitIDFromName( sender )
