@@ -332,7 +332,7 @@ function DellerenAddon.Status:OnSpellUsed( spell, unit )
 		if sp then
 			sp.charges = sp.charges - 1
 			if sp.charges < 0 then sp.charges = 0 end
-			if sp.time >
+			if sp.time > 
 		end
 	end
 	
