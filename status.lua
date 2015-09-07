@@ -323,11 +323,13 @@ end
 -- @param unit UnitID of player.
 --
 function DellerenAddon.Status:OnSpellUsed( spell, unit )
-
+	
 	local index = GetPlayerIndex( unit )
 	if index == -1 then
 	local p = self.players[index]
+	
 	if p ~= nil then
+		-- we have data for this player
 		local sp = p.spells[spell]
 		if sp then
 			sp.charges = sp.charges - 1
