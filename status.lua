@@ -332,6 +332,8 @@ function DellerenAddon.Status:OnSpellUsed( spell, unit )
 		-- we have data for this player
 		local sp = p.spells[spell]
 		if sp then
+			-- we have data for the spell that they cast
+			
 			sp.charges = sp.charges - 1
 			if sp.charges < 0 then sp.charges = 0 end
 			if sp.time > 
