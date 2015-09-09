@@ -140,6 +140,8 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 }
 
 -------------------------------------------------------------------------------
+-- Remove entries that do not match their player guid.
+--
 function DellerenAddon.Status:PrunePlayers()
 	if IsInRaid() then
 		for i = 1,40 do
