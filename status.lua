@@ -187,6 +187,7 @@ function DellerenAddon.Status:Refresh()
 		table.insert( subs, spell )
 	end
 	
+	-- needs to be sorted for certain optimizations
 	table.sort( subs )
 	self.subs = subs
 	
