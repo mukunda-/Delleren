@@ -483,7 +483,7 @@ function DellerenAddon:StartQuery( list, item, buff )
 end
 
 -------------------------------------------------------------------------------
-function CDPlease:OnQueryUpdate()
+function DellerenAddon:OnQueryUpdate()
 	local t  = GetTime() - g_query_time
 	local t2 = GetTime() - g_query_start_time
 	 
