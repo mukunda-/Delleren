@@ -295,7 +295,7 @@ function DellerenAddon.Status:SendDelayed()
 				end
 			end
 			
-			
+			-- pack into data
 			table.insert( data.cds, sp_spellid    )
 			table.insert( data.cds, sp_duration   )
 			table.insert( data.cds, sp_charges    )
