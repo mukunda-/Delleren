@@ -286,6 +286,7 @@ function DellerenAddon.Status:SendDelayed()
 						sp_charges = 1
 						sp_time = 0
 					else
+
 						sp_charges = 0
 						sp_time = cd_start + cd_duration
 						sp_duration = cd_duration
