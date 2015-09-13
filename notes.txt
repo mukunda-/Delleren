@@ -59,7 +59,7 @@ NO (WHISPER) - Decline a cd request.
      this is issued when we are busy with a request already,
      when the cd is on cooldown, or reserved.
 {
-	rid = <mirrored request_id>
+	rid  = <mirrored request_id>
 }
 
 STATUS (RAID) - Update raid with status

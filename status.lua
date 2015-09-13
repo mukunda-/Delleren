@@ -16,10 +16,10 @@ DellerenAddon.Status = {
 	--     guid = player guid
 	--     subs = { subbed spell ids, sorted }
 	--     spells[spellid] = { 
-	--                         duration;
-	--                         charges;
-	--                         maxcharges;
-	--                         time;
+	--                         duration;   -- the length of the cd
+	--                         charges;    -- number of charges that are ready
+	--                         maxcharges; -- the max number of charges 
+	--                         time;       -- time when the cooldown started
     --                       }
 	--                         
 	--
@@ -130,13 +130,13 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 	end
 	
 	table.sort( p.subs )
-	 
+	
 	self.players[index] = p
 	self:Refresh()
 	
 	if data.poll then
 		self:Send()
-	end 
+	end
 }
 
 -------------------------------------------------------------------------------
@@ -338,10 +338,32 @@ function DellerenAddon.Status:OnSpellUsed( spell, unit )
 		if sp then
 			-- we have data for the spell that they cast
 			
+			-- add new spell charges
+			local time = GetTime()
+			while sp.charges < sp.maxcharges do
+				if time > sp.time + sp.duration then
+					sp.time = sp.time + sp.duration
+					sp.charges = sp.charges + 1
+					if sp.charges >= sp.maxcharges then
+						sp.charges = sp.maxcharges -- redundant
+						sp.time = 0
+					end
+				end
+			end
+			
+			-- use a charge, and reset the time if there's a time error
+			-- or if the time isn't set
 			sp.charges = sp.charges - 1
-			if sp.charges < 0 then sp.charges = 0 end
-			if sp.time > 
+			if sp.charges < 0 then 
+				sp.charges = 0 
+				sp.time = time
+			else
+				if sp.time == 0 then
+					sp.time = GetTime()
+				end
+			end
+			
+			-- todo: update cooldown bar
 		end
 	end
-	
 end

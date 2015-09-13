@@ -35,6 +35,9 @@ function DellerenAddon:OnInitialize()
 	end
 	
 	self:ScheduleRepeatingTimer( "OnStatusRefresh", 5 )
+	
+	self:RegisterEvent( "UNIT_SPELLCAST_SUCCEEDED", 
+						"OnUnitSpellcastSucceeded" )
 end
 
 -------------------------------------------------------------------------------
@@ -46,45 +49,62 @@ function DellerenAddon:OnStatusRefresh()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:OnCombatLogEvent( event, ... ) 
-	local timestamp,evt,_,sourceGUID,_,_,_,destGUID,_,_,_,spellID = ...
-	
-	if evt == "SPELL_AURA_APPLIED" or evt == "SPELL_AURA_REFRESH" then
-	
-		if self.query.active and sourceGUID == UnitGUID( self.query.unit )
-           and spellID == self.query.spell then
-		   
-			if destGUID == UnitGUID( "player" ) then
-				
-				self:SetAnimation( "QUERY", "SUCCESS" )
-				self.query.active = false
-				
-			else
-				-- cd was cast on someone else! find another one!
-				self.query.requested = false
-			end
+function DellerenAddon:OnUnitSpellcastSucceeded( event, unitID, rank, 
+												 lineID, spellID )
+	self.Status:OnSpellUsed( unitID, spellID )
+end
+
+-------------------------------------------------------------------------------
+-- Called when a party or raid member applies a buff or debuff to someone.
+--
+-- @param spellID     Spell ID of buff.
+-- @param source,dest GUID of player who buffed and target
+--
+function DellerenAddon:OnAuraApplied( spellID, source, dest ) 
+
+	if self.query.active and source == UnitGUID( self.query.unit )
+	   and spellID == self.query.spell then
+	   
+		if dest == UnitGUID( "player" ) then
+			
+			self.Indicator:SetAnimation( "QUERY", "SUCCESS" )
+			self.query.active = false
+			
+		else
+			-- cd was cast on someone else! find another one!
+			self.query.requested = false
 		end
-		
-		if self.help.active and sourceGUID == UnitGUID( "player" ) 
-		   and spellID == self.help.spell then
-	 
-			if destGUID == UnitGUID( self.help.unit ) then
-				
-				self:PlaySound( "GOOD" )
-				self:SetAnimation( "HELP", "SUCCESS" )
-				self.help.active = false
-				
-			else
-				
-				self:PlaySound( "FAIL" )
-				self:SetAnimation( "HELP", "FAILURE" )
-				self.help.active = false
-				
-			end
+	end
+	
+	if self.help.active and source == UnitGUID( "player" ) 
+	   and spellID == self.help.spell then
+ 
+		if dest == UnitGUID( self.help.unit ) then
+			
+			self:PlaySound( "GOOD" )
+			self.Indicator:SetAnimation( "HELP", "SUCCESS" )
+			self.help.active = false
+			
+		else
+			
+			self:PlaySound( "FAIL" )
+			self.Indicator:SetAnimation( "HELP", "FAILURE" )
+			self.help.active = false
+			
 		end
 	end
 end
 
+-------------------------------------------------------------------------------
+function DellerenAddon:OnCombatLogEvent( event, ... ) 
+	local timestamp,evt,_,sourceGUID,_,_,_,destGUID,_,_,_,spellID = ...
+	
+	if evt == "SPELL_AURA_APPLIED" or evt == "SPELL_AURA_REFRESH" then
+		self:OnAuraApplied( spellID, sourceGUID, destGUID )
+	
+	end
+end
+  
 -------------------------------------------------------------------------------
 function DellerenAddon:UnlockFrames()
 	if self.unlocked then return end
