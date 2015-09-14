@@ -570,124 +570,48 @@ end
 -------------------------------------------------------------------------------
 -- Frame update handler.
 --
-function CDPlease:OnFrame()
-	if g_query_active then
-		self:OnQueryUpdate()
+function DellerenAddon:OnFrame()
+	if self.query.active then
+		self.Query:Update()
 	end
 	
-	if g_help_active then
-		self:OnHelpUpdate()
+	if self.help.active then
+		self.Help:Update()
 	end
 	
-	self:UpdateAnimation()
+	self.Indicator:UpdateAnimation()
 	
-	if not g_query_active and not g_help_active and g_ani_finished then
+	if not self.query.active and not self.help.active 
+	    and self.ani.finished then
+		
 		self:DisableFrameUpdates()
-		g_frame:Hide()
+		self.Indicator:Hide()
 	end
 end
 
 -------------------------------------------------------------------------------
--- Enable the OnFrame callback.
+-- Enable animations and combat log parsing.
 --
-function CDPlease:EnableFrameUpdates()
+function DellerenAddon:EnableFrameUpdates()
 	
-	g_frame:SetScript( "OnUpdate", function() CDPlease:OnFrame() end )
-	CDPlease:RegisterEvent( "COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent" )
+	self.Indicator.frame:SetScript( "OnUpdate", 
+							  function() DellerenAddon:OnFrame() end )
+							  
+	self:RegisterEvent( "COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent" )
 end
 
 -------------------------------------------------------------------------------
--- Disable the OnFrame callback.
+-- Disable animations and combat log parsing.
 --
-function CDPlease:DisableFrameUpdates()
-	g_frame:SetScript( "OnUpdate", nil )
-	CDPlease:UnregisterEvent( "COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent" )
-end
-
--------------------------------------------------------------------------------
-function CDPlease:NoCDAvailable()
-	
-end
-
--------------------------------------------------------------------------------
-function CDPlease:ShowHelpRequest( sender )
-	g_help_active = true
-	g_help_unit   = UnitIDFromName( sender )
-	g_help_time   = GetTime()
-	g_help_pulse  = GetTime() + 1
-	self:PlaySound( "HELP" )
-	
-	self:SetIndicatorText( UnitName( g_help_unit ))
-	self:SetAnimation( "HELP", "HELP" )
-	g_frame:Show()
-	
-	
-	self:EnableFrameUpdates()
-end
-
--------------------------------------------------------------------------------
-function CDPlease:SetAnimation( source, state )
-
-	if source == "QUERY" and g_help_active then 
-		-- do not interfere with help interface
-		return
-	end
-	
-	g_ani_state = state
-	g_ani_time  = GetTime()
-	g_ani_finished = false
-end
-
-
--------------------------------------------------------------------------------
-function CDPlease:UpdateAnimation()
-	local t = GetTime() - g_ani_time
-	
-	if g_ani_state == "ASKING" then
-		local r,g,b = ColorLerp( 1,1,1, 1,0.7,0.2, t / 0.25 )
-		g_frame.icon:SetVertexColor( r, g, b, 1 )
-		g_frame.text:SetTextColor( 1, 1, 1, 1 )
-		if t >= 1.0 then g_ani_finished = true end
-		
-	elseif g_ani_state == "SUCCESS" then
-		
-		local a = 1.0 - math.min( t / 0.5, 1 )
-		g_frame.icon:SetVertexColor( 0.3, 1, 0.3, a )
-		g_frame.text:SetTextColor  ( 0.3, 1, 0.3, a )
-		if t >= 0.5 then g_ani_finished = true end
-		
-	elseif g_ani_state == "FAILURE" then
-	
-		local a = 1.0 - math.min( t / 0.5, 1 )
-		g_frame.icon:SetVertexColor( 1, 0.1, 0.2, a )
-		g_frame.text:SetTextColor  ( 1, 0.1, 0.2, a )
-		if t >= 0.5 then g_ani_finished = true end
-		
-	elseif g_ani_state == "POLLING" then
-	
-		local r,g,b = 0.25, 0.25, 0.6
-		
-		b = b + math.sin( GetTime() * 6.28 * 3 ) * 0.4
-		
-		r,g,b = ColorLerp( 1,1,1,r,g,b, t / 0.2 )
-		g_frame.icon:SetVertexColor( r, g, b, 1 )
-		g_frame.text:SetTextColor( 1,1,1,1 )
-		if t >= 1.0 then g_ani_finished = true end
-		
-	elseif g_ani_state == "HELP" then
-		local r,g,b = ColorLerp( 1,1,1, 0.5,0,0.5, t/0.25 )
-		g_frame.icon:SetVertexColor( r, g, b, 1 )
-		g_frame.text:SetTextColor( 1,1,1,1 )
-		if t >= 1.0 then g_ani_finished = true end
-	else
-		g_frame.text:SetTextColor( 1,1,1,1 )
-	end
+function DellerenAddon:DisableFrameUpdates()
+	self.Indicator.frame:SetScript( "OnUpdate", nil )
+	self:UnregisterEvent( "COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent" )
 end
 
 -------------------------------------------------------------------------------
 -- Slash command for macro binding.
 --
-function SlashCmdList.CDPLEASE( msg )
+function SlashCmdList.DELLEREN( msg )
 	local args = {}
 	
 	for i in string.gmatch( msg, "%S+" ) do
@@ -695,21 +619,20 @@ function SlashCmdList.CDPLEASE( msg )
 	end
 	
 	if args[1] == "unlock" then
-		CDPlease:Unlock()
+		DellerenAddon:Unlock()
 	elseif args[1] == "call" then
-		CDPlease:CallCD()
-	elseif args[1] == "size" then
-		CDPlease:Scale( args[2] )
+		DellerenAddon:CallCD() 
+	elseif args[1] == "config" then
+		DellerenAddon:ShowConfig() 
 		
 	elseif args[1] == "fuck" then
 		
 		print( "My what a filthy mind you have!" )
 		 
 	else
-		print( "/cdplease unlock - Unlock the frame." )
-		print( "/cdplease size <pixels> - Scale the frame." )
-		print( "/cdplease call - Call for a cd." )
+		print( "/delleren unlock - Unlock the frame." )
+		print( "/delleren config - Open configuration." )
+		print( "/delleren call - Call for a cd." )
 	end
-	 
-	--CDPlease:CallCD()
+	  
 end

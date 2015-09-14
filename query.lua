@@ -73,6 +73,7 @@ function DellerenAddon.Query:Start( list, item, buff )
 	DellerenAddon:EnableFrameUpdates()
 end
 
+-------------------------------------------------------------------------------
 function DellerenAddon.Query:OnAuraApplied( spellID, source, dest )
 
 end
