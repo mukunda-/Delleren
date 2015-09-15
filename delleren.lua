@@ -7,11 +7,13 @@
 -------------------------------------------------------------------------------
 -- version 1.1 beta
 -------------------------------------------------------------------------------
+
+local Delleren = DellerenAddon
  
 local COMM_PREFIX = "DELLEREN"
 
 -------------------------------------------------------------------------------		  
-function DellerenAddon:OnInitialize()
+function Delleren:OnInitialize()
 	SLASH_DELLEREN1 = "/delleren"
 	
 	if not DellerenAddonSaved then
@@ -31,7 +33,7 @@ function DellerenAddon:OnInitialize()
 	end
 	
 	if not self.saved.locked then
-		DellerenAddon:Unlock() 
+		Delleren:Unlock() 
 	end
 	
 	self:ScheduleRepeatingTimer( "OnStatusRefresh", 5 )
@@ -41,7 +43,7 @@ function DellerenAddon:OnInitialize()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:OnStatusRefresh()
+function Delleren:OnStatusRefresh()
 	local status = BuildStatus()
 	if status == nil then return end
 	
@@ -49,7 +51,7 @@ function DellerenAddon:OnStatusRefresh()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:OnUnitSpellcastSucceeded( event, unitID, rank, 
+function Delleren:OnUnitSpellcastSucceeded( event, unitID, rank, 
 												 lineID, spellID )
 	self.Status:OnSpellUsed( unitID, spellID )
 end
@@ -60,7 +62,7 @@ end
 -- @param spellID     Spell ID of buff.
 -- @param source,dest GUID of player who buffed and target
 --
-function DellerenAddon:OnAuraApplied( spellID, source, dest ) 
+function Delleren:OnAuraApplied( spellID, source, dest ) 
 
 	if self.query.active and source == UnitGUID( self.query.unit )
 	   and spellID == self.query.spell then
@@ -96,7 +98,7 @@ function DellerenAddon:OnAuraApplied( spellID, source, dest )
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:OnCombatLogEvent( event, ... ) 
+function Delleren:OnCombatLogEvent( event, ... ) 
 	local timestamp,evt,_,sourceGUID,_,_,_,destGUID,_,_,_,spellID = ...
 	
 	if evt == "SPELL_AURA_APPLIED" or evt == "SPELL_AURA_REFRESH" then
@@ -106,7 +108,7 @@ function DellerenAddon:OnCombatLogEvent( event, ... )
 end
   
 -------------------------------------------------------------------------------
-function DellerenAddon:UnlockFrames()
+function Delleren:UnlockFrames()
 	if self.unlocked then return end
 	
 	if UnitAffectingCombat( "player" ) then
@@ -170,12 +172,12 @@ function Delleren:LockFrames()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:HideIndicatorText( caption )
+function Delleren:HideIndicatorText( caption )
 	self.frames.indicator.text:Hide()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:Scale( size )
+function Delleren:Scale( size )
 	
 	size = tonumber( size )
 	if size == nil then return end
@@ -317,29 +319,25 @@ local function HasCDReady( ignore_reserve, list, item )
 		end
 	end
 end
- 
--------------------------------------------------------------------------------
-local function IgnoreCRMessage( data ) 
-	-- ignore cross realm message not intended for us
-	return data.tar and UnitGUID("player") ~= data.tar
-	
-end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:OnInitialize()
+function Delleren:OnInitialize()
 	self:RegisterComm( "DELLEREN" )
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:OnCommReceived( prefix, packed_message, dist, sender )
+function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 	if prefix ~= self.COMM_PREFIX then return end -- discard unwanted messages
 	
 	sender = UnitIDFromName( sender )
 	if sender == nil then return end -- bad message
 	
 	local result, msg, data = self:Deserialize( packed_message )
-	
 	if result == false then return end -- bad message
+	if data.tar and UnitGUID("player") ~= data.tar then
+		-- crossrealm whisper and we are not the intended target.
+		return
+	end
 	
 	if msg == "CHECK" then
 		-- player is checking if we have a cd ready
@@ -352,9 +350,7 @@ function DellerenAddon:OnCommReceived( prefix, packed_message, dist, sender )
 		
 	elseif msg == "READY" then
 		
-		if not self.query.active or data.rid ~= self.query.rid 
-		   or IgnoreCRMessage(data) then 
-			
+		if not self.query.active or data.rid ~= self.query.rid then 
 			return -- invalid message
 		end
 		
@@ -370,8 +366,6 @@ function DellerenAddon:OnCommReceived( prefix, packed_message, dist, sender )
 	elseif msg == "GIVE" then
 		-- player is asking for a CD
 		
-		if IgnoreCRMessage(data) then return end
-		
 		if not HasCDReady( false, data.id, data.item ) then
 		
 			self:DeclineCD( sender, data.rid )
@@ -382,7 +376,7 @@ function DellerenAddon:OnCommReceived( prefix, packed_message, dist, sender )
 	elseif msg == "NO" then
 		-- player denied our cd request
 		
-		if IgnoreCRMessage(data) or data.rid ~= self.query.request_id then
+		if data.rid ~= self.query.request_id then
 			return
 		end
 		
@@ -412,7 +406,7 @@ end
 -- @param dist Distribution type.
 -- @param unit WHISPER distribution target.
 --
-function DellerenAddon:Comm( msg, data, dist, unit )
+function Delleren:Comm( msg, data, dist, unit )
 	
 	if unit ~= nil and dist == "WHISPER" and CrossesRealm( unit ) then
 		dist = "RAID"
@@ -430,52 +424,8 @@ function DellerenAddon:Comm( msg, data, dist, unit )
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:RespondReady( sender )
+function Delleren:RespondReady( sender )
 	self:SendCommMessage( COMM_PREFIX, "READY", "WHISPER", sender ) 
-end
- 
--------------------------------------------------------------------------------
--- Pop the top of the query list and make a request. 
---
--- @returns true if a request was made, false if it's already in progress
---               or there are no more valid targets.
---
-function DellerenAddon:RequestCD( sort )
-
-	if self.query.requested or #self.query.list == 0 then 
-		return false  -- request already in progress or list is empty
-	end
-	
-	table.sort( self.query.list, 
-		function( a, b )
-			-- can't get much less efficient than this!
-			return RequestSort(a) < RequestSort(b)
-		end
-	)
-	
-	local request_data = self.query.list[ #self.query.list ]
-	table.remove( self.query.list )
-	
-	self.query.unit      = request_data.unit
-	self.query.requested = true
-	self.query.time      = GetTime()
-	
-	local msgdata = {
-		rid  = self.query.rid;
-		buff = self.query.buff;
-		id   = request_data.id;
-	}
-	
-	self:Comm( "GIVE", msgdata, "WHISPER", unit ) 
-	
-	self:SetAnimation( "QUERY", "ASKING" )
-	self:PlaySound( "ASK" )
-	
-	if not self.help.active then
-		self:SetIndicatorText( UnitName( g_query_unit ))
-	end
-	
-	return true 
 end
 
 -------------------------------------------------------------------------------
@@ -484,7 +434,7 @@ end
 -- @param target Unit ID of person we are denying.
 -- @param rid    Request ID.
 --
-function DellerenAddon:DeclineCD( target, rid )
+function Delleren:DeclineCD( target, rid )
 	local data = { rid = rid }
 	self:Comm( "NO", data, "WHISPER", target )
 end
@@ -498,46 +448,12 @@ end
 --             just want them to use the spell or item without caring for
 --             the target.
 --
-function DellerenAddon:StartQuery( list, item, buff )
+function Delleren:StartQuery( list, item, buff )
 	
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:OnQueryUpdate()
-	local t  = GetTime() - g_query_time
-	local t2 = GetTime() - g_query_start_time
-	 
-		
-	if not g_query_requested then
-	
-		if t2 >= HARD_QUERY_TIMEOUT then
-			
-			self:PlaySound( "FAIL" )
-			self:SetAnimation( "QUERY", "FAILURE" )
-			g_query_active = false
-			return
-		end
-		
-		if t2 >= QUERY_WAIT_TIME then
-			if not self:RequestCD() then
-				if t2 >= QUERY_TIMEOUT then
-				
-					self:PlaySound( "FAIL" )
-					self:SetAnimation( "QUERY", "FAILURE" )
-					g_query_active = false
-					return
-				end
-			end
-		end
-		
-	else 
-		if t >= CD_WAIT_TIMEOUT then
-			self:PlaySound( "FAIL" )
-			self:SetAnimation( "QUERY", "FAILURE" )
-			g_query_active = false
-		end
-	end 
-end
+
 
 -------------------------------------------------------------------------------
 function CDPlease:OnHelpUpdate()
@@ -570,14 +486,9 @@ end
 -------------------------------------------------------------------------------
 -- Frame update handler.
 --
-function DellerenAddon:OnFrame()
-	if self.query.active then
-		self.Query:Update()
-	end
-	
-	if self.help.active then
-		self.Help:Update()
-	end
+function Delleren:OnFrame()
+	if self.query.active then self.Query:Update() end
+	if self.help.active  then self.Help:Update()  end
 	
 	self.Indicator:UpdateAnimation()
 	
@@ -592,10 +503,10 @@ end
 -------------------------------------------------------------------------------
 -- Enable animations and combat log parsing.
 --
-function DellerenAddon:EnableFrameUpdates()
+function Delleren:EnableFrameUpdates()
 	
 	self.Indicator.frame:SetScript( "OnUpdate", 
-							  function() DellerenAddon:OnFrame() end )
+							  function() Delleren:OnFrame() end )
 							  
 	self:RegisterEvent( "COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent" )
 end
@@ -603,7 +514,7 @@ end
 -------------------------------------------------------------------------------
 -- Disable animations and combat log parsing.
 --
-function DellerenAddon:DisableFrameUpdates()
+function Delleren:DisableFrameUpdates()
 	self.Indicator.frame:SetScript( "OnUpdate", nil )
 	self:UnregisterEvent( "COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent" )
 end
@@ -618,12 +529,15 @@ function SlashCmdList.DELLEREN( msg )
 		table.insert( args, i )
 	end
 	
+	if args[1] == nil then return end
+	args[1] = tolower( args[1] )
+	
 	if args[1] == "unlock" then
-		DellerenAddon:Unlock()
+		Delleren:Unlock()
 	elseif args[1] == "call" then
-		DellerenAddon:CallCD() 
+		Delleren:CallCD() 
 	elseif args[1] == "config" then
-		DellerenAddon:ShowConfig() 
+		Delleren:ShowConfig() 
 		
 	elseif args[1] == "fuck" then
 		

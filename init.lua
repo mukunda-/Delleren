@@ -9,10 +9,11 @@
 DellerenAddon = LibStub("AceAddon-3.0"):NewAddon( "Delleren", 
 	             		  "AceComm-3.0", "AceEvent-3.0", "AceSerializer-3.0",
 						  "AceTimer-3.0" ) 
-
+						  
+local Delleren = DellerenAddon
 
 -------------------------------------------------------------------------------
-DellerenAddon.help = {
+Delleren.help = {
 	active = false; -- if we are currently being asked for a cd
 	unit   = nil;   -- unitid that is asking for the cd
 	spell  = nil;   -- spellid they are asking for
@@ -21,21 +22,11 @@ DellerenAddon.help = {
 }
 
 -------------------------------------------------------------------------------
-DellerenAddon.statusmsg = {
-	active = false; -- if we are about to send a status message
-}
-
--------------------------------------------------------------------------------
-DellerenAddon.status = {
-	
-}
-
--------------------------------------------------------------------------------
-DellerenAddon.drag_stuff = {}
-DellerenAddon.unlocked   = false
+Delleren.drag_stuff = {}
+Delleren.unlocked   = false
 			  
 -------------------------------------------------------------------------------
-function DellerenAddon:InitMasque()
+function Delleren:InitMasque()
 	local masque = LibStub( "Masque", true )
 	
 	if masque then
@@ -45,7 +36,7 @@ function DellerenAddon:InitMasque()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:InitVars()
+function Delleren:InitVars()
 	
 	self.SUPPORTED_CDS = {
 		102342; -- ironbark
@@ -63,7 +54,7 @@ function DellerenAddon:InitVars()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:InitFrames()
+function Delleren:InitFrames()
 	local frame = CreateFrame( "Button", "DellerenIndicator" ) 
 	
 	self.frames.indicator = frame
@@ -75,7 +66,7 @@ function DellerenAddon:InitFrames()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:Setup()
+function Delleren:Setup()
 	self:InitMasque()
 	
 	self:InitFrames() 

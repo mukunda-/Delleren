@@ -4,6 +4,8 @@
 -- See LICENSE-DELLEREN.TXT
 -------------------------------------------------------------------------------
 
+local Delleren = DellerenAddon
+
 -------------------------------------------------------------------------------
 local SOUND_LIST = {
 	["FAIL"] = "Interface\\Addons\\cdplease\\sounds\\fail.ogg";
@@ -13,7 +15,7 @@ local SOUND_LIST = {
 }
 
 -------------------------------------------------------------------------------
-function DellerenAddon:PlaySound( sound )
+function Delleren:PlaySound( sound )
 	local s = SOUND_LIST[sound]
 	if s == nil then return end
 	

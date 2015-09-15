@@ -4,7 +4,9 @@
 -- See LICENSE-DELLEREN.TXT
 -------------------------------------------------------------------------------
 
+local Delleren = DellerenAddon
+
 -- startup code
 
 -------------------------------------------------------------------------------
-DellerenAddon:Setup()
+Delleren:Setup()
