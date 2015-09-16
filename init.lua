@@ -34,25 +34,7 @@ function Delleren:InitMasque()
 	end
 	
 end
-
--------------------------------------------------------------------------------
-function Delleren:InitVars()
-	
-	self.SUPPORTED_CDS = {
-		102342; -- ironbark
-		114030; -- vigilance
-		122844; -- painsup
-		6940;   -- sac
-		1022;   -- hand of protection
-		1044;   -- hand of freedom
-		47788;  -- guardian spirit
-		116849; -- life cocoon
-		116841; -- tiger's lust 
-		114039; -- hand of purity 
-	}
-	
-end
-
+ 
 -------------------------------------------------------------------------------
 function Delleren:InitFrames()
 	local frame = CreateFrame( "Button", "DellerenIndicator" ) 
