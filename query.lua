@@ -10,7 +10,9 @@ local QUERY_WAIT_TIME    = 0.25 -- time to wait for cd responses
 local QUERY_TIMEOUT      = 3.0  -- time to give up query
 local HARD_QUERY_TIMEOUT = 5.0  -- time for the query to stop even
                                 -- when there are options left!
-local HELP_TIMEOUT    = 7.0  -- time to allow user to cast a spell.
+local HELP_TIMEOUT       = 7.0  -- time to allow user to cast a spell.
+
+-- TODO: request priority targets
 
 -------------------------------------------------------------------------------
 Delleren.Query = {
@@ -72,9 +74,9 @@ function Delleren.Query:Start( list, item, buff )
 		-- do an instant request
 		
 		for unit in Delleren:IteratePlayers() do
-			local spell = Delleren.Status:HasSpellReady( instant_list )
+			local spell = Delleren.Status:HasSpellReady( unit, instant_list )
 			if spell then
-				table.insert( self.list, { unit = unit, id = spell }
+				table.insert( self.list, { unit = unit, id = spell } )
 			end
 		end
 	end
@@ -85,13 +87,23 @@ function Delleren.Query:Start( list, item, buff )
 	else
 		
 		if #check_list > 0 then
-			Delleren:Comm( "
+			
+			self:SendCheck( check_list )
 		end
 	end
 	
-	--self:SendCommMessage( COMM_PREFIX, "ASK", "RAID" )
-	
 	Delleren:EnableFrameUpdates()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Query:SendCheck( list )
+	local data = {
+		rid  = self.request_id;
+		ids  = list;
+		item = self.item;
+	}
+	
+	Delleren:Comm( "CHECK", data, "RAID" )
 end
 
 -------------------------------------------------------------------------------
@@ -133,11 +145,6 @@ function Delleren.Query:Update()
 end
 
 -------------------------------------------------------------------------------
-function Delleren.Query:OnAuraApplied( spellID, source, dest )
-	
-end
-
--------------------------------------------------------------------------------
 -- Pop the top of the query list and make a request. 
 --
 -- @returns true if a request was made, false if it's already in progress
@@ -176,7 +183,7 @@ function Delleren.Query:RequestCD( sort )
 	Delleren:PlaySound( "ASK" )
 	
 	if not self.help.active then
-		self:SetIndicatorText( UnitName( g_query_unit ))
+		self:SetIndicatorText( UnitName( self.unit ))
 	end
 	
 	return true 

@@ -25,7 +25,7 @@ function Delleren:OnInitialize()
 	local data = DellerenAddonSaved
 	data.size = data.size or 48
 	
-	self:frames.main:SetSize( data.size, data.size )
+	self.Indicator:SetFrameSize( data.size )
 	
 	if not self.saved.init then
 		self.saved.init = true
@@ -36,8 +36,6 @@ function Delleren:OnInitialize()
 		Delleren:Unlock() 
 	end
 	
-	self:ScheduleRepeatingTimer( "OnStatusRefresh", 5 )
-	
 	self:RegisterEvent( "UNIT_SPELLCAST_SUCCEEDED", 
 						"OnUnitSpellcastSucceeded" )
 	
@@ -45,17 +43,24 @@ function Delleren:OnInitialize()
 end
 
 -------------------------------------------------------------------------------
-function Delleren:OnStatusRefresh()
-	local status = BuildStatus()
-	if status == nil then return end
-	
-	
-end
-
--------------------------------------------------------------------------------
 function Delleren:OnUnitSpellcastSucceeded( event, unitID, rank, 
 												 lineID, spellID )
 	self.Status:OnSpellUsed( unitID, spellID )
+	
+	if self.query.active and not self.query.buff 
+	   and spellID == self.query.spell 
+	   and UnitGUID( unitID ) == UnitGUID( self.query.unit ) then
+		
+		self.Indicator:SetAnimation( "QUERY", "SUCCESS" )
+		self.query.active = false
+	end
+	
+	if self.help.active and not self.help.buff
+	   and spellID == self.help.spell then
+	   
+		self.Indicator:SetAnimation( "HELP", "SUCCESS" )
+		self.help.active = false
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -66,7 +71,8 @@ end
 --
 function Delleren:OnAuraApplied( spellID, source, dest ) 
 
-	if self.query.active and source == UnitGUID( self.query.unit )
+	if self.query.active and self.query.buff 
+	   and source == UnitGUID( self.query.unit )
 	   and spellID == self.query.spell then
 	   
 		if dest == UnitGUID( "player" ) then
@@ -80,12 +86,12 @@ function Delleren:OnAuraApplied( spellID, source, dest )
 		end
 	end
 	
-	if self.help.active and source == UnitGUID( "player" ) 
+	if self.help.active and self.help.buff 
+	   and source == UnitGUID( "player" ) 
 	   and spellID == self.help.spell then
  
 		if dest == UnitGUID( self.help.unit ) then
 			
-			self:PlaySound( "GOOD" )
 			self.Indicator:SetAnimation( "HELP", "SUCCESS" )
 			self.help.active = false
 			
@@ -94,7 +100,6 @@ function Delleren:OnAuraApplied( spellID, source, dest )
 			self:PlaySound( "FAIL" )
 			self.Indicator:SetAnimation( "HELP", "FAILURE" )
 			self.help.active = false
-			
 		end
 	end
 end
@@ -105,7 +110,7 @@ function Delleren:OnCombatLogEvent( event, ... )
 	
 	if evt == "SPELL_AURA_APPLIED" or evt == "SPELL_AURA_REFRESH" then
 		self:OnAuraApplied( spellID, sourceGUID, destGUID )
-	
+		
 	end
 end
   
@@ -286,7 +291,7 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
-	if prefix ~= self.COMM_PREFIX then return end -- discard unwanted messages
+	if prefix ~= COMM_PREFIX then return end -- discard unwanted messages
 	
 	sender = UnitIDFromName( sender )
 	if sender == nil then return end -- bad message
@@ -298,13 +303,18 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		return
 	end
 	
+	if UnitGUID( sender ) == UnitGUID ("player") then
+		-- ignore mirrored messages
+		return
+	end
+	
 	if msg == "CHECK" then
 		-- player is checking if we have a cd ready
 		
 		local id = HasCDReady( false, data.id, data.item )
 		
 		if id then
-			self:RespondReady( sender, id )
+			self:RespondReady( sender, data.rid, id )
 		end
 		
 	elseif msg == "READY" then
@@ -372,8 +382,20 @@ function Delleren:Comm( msg, data, dist, unit )
 end
 
 -------------------------------------------------------------------------------
-function Delleren:RespondReady( sender )
-	self:SendCommMessage( COMM_PREFIX, "READY", "WHISPER", sender ) 
+-- Send a READY response.
+--
+-- @param target unitID to respond to.
+-- @param rid    Request ID.
+-- @param id     Spell or item ID that we have ready.
+--
+function Delleren:RespondReady( target, rid, id )
+
+	local data = {
+		rid = rid;
+		id  = id;
+	}
+	
+	self:Comm( "READY", data, "WHISPER", target )
 end
 
 -------------------------------------------------------------------------------
@@ -485,7 +507,4 @@ function Delleren:IteratePlayers()
 		end
 		
 	end
-		
-	
-	
 end

@@ -93,7 +93,7 @@ end
 -- @param unit UnitID of player. Must be a party or raid unit ID.
 -- @param data The data of the STATUS comm message.
 --
-function Delleren.Status:UpdatePlayer( unit, data ) {
+function Delleren.Status:UpdatePlayer( unit, data )
 	local index = GetPlayerIndex( unit )
 	if index == nil then return end
 	
@@ -323,6 +323,23 @@ function Delleren.Status:IsSubbed( spell )
 end
 
 -------------------------------------------------------------------------------
+-- Check if a spell has come off of cooldown and add a charge for it.
+--
+function Delleren.Status:UpdateSpellCooldown( sp )
+
+	while sp.charges < sp.maxcharges do
+		if GetTime() > sp.time + sp.duration then
+			sp.time = sp.time + sp.duration
+			sp.charges = sp.charges + 1
+			if sp.charges >= sp.maxcharges then
+				sp.charges = sp.maxcharges -- redundant
+				sp.time = 0
+			end
+		end
+	end
+end
+
+-------------------------------------------------------------------------------
 -- Called when a spell is used by a player.
 --
 -- @param spell ID of spell used.
@@ -330,43 +347,76 @@ end
 --
 function Delleren.Status:OnSpellUsed( spell, unit )
 	
-	local index = GetPlayerIndex( unit )
-	if index == -1 then
-	local p = self.players[index]
+	local p = self:GetPlayerData( unit )
+	if p == nil then return end
 	
-	if p ~= nil then
-		-- we have data for this player
-		local sp = p.spells[spell]
-		if sp then
-			-- we have data for the spell that they cast
-			
-			-- add new spell charges
-			local time = GetTime()
-			while sp.charges < sp.maxcharges do
-				if time > sp.time + sp.duration then
-					sp.time = sp.time + sp.duration
-					sp.charges = sp.charges + 1
-					if sp.charges >= sp.maxcharges then
-						sp.charges = sp.maxcharges -- redundant
-						sp.time = 0
-					end
-				end
+	-- we have data for this player
+	local sp = p.spells[spell]
+	if sp then
+		-- we have data for the spell that they cast
+		
+		-- add new spell charges
+		local time = GetTime()
+		self:UpdateSpellCooldown( sp )
+		
+		-- use a charge, and reset the time if there's a time error
+		-- or if the time isn't set
+		sp.charges = sp.charges - 1
+		if sp.charges < 0 then 
+			sp.charges = 0 
+			sp.time = time
+		else
+			if sp.time == 0 then
+				sp.time = GetTime()
 			end
-			
-			-- use a charge, and reset the time if there's a time error
-			-- or if the time isn't set
-			sp.charges = sp.charges - 1
-			if sp.charges < 0 then 
-				sp.charges = 0 
-				sp.time = time
-			else
-				if sp.time == 0 then
-					sp.time = GetTime()
-				end
-			end
-			
-			-- todo: update cooldown bar
 		end
+		
+		-- todo: update cooldown bar
 	end
+
 end
 
+-------------------------------------------------------------------------------
+-- Checks if a player has a spell ready.
+--
+-- @param unit unitID of player to check.
+-- @param list List of spells to check for, they must be subscribed.
+--
+-- @returns spell ID of a spell that is ready or nil if none are available.
+--
+function Delleren.Status:HasSpellReady( unit, list )
+
+	local p = self:GetPlayerData( unit )
+	if p == nil then return nil end
+	
+	for _,spell in ipairs( list )
+		local sp = p.spells[spell]
+		if sp then
+			self:UpdateSpellCooldown( sp )
+			if sp.charges >= 1 then
+				return spell
+			end
+		end
+	end
+	
+	-- no spells available
+	return nil
+end
+
+-------------------------------------------------------------------------------
+-- Get status data from a unitid
+--
+function Delleren.Status:GetPlayerData( unit )
+	local index = GetPlayerIndex( unit )
+	if not index then return nil end
+	
+	local p = self.players[index]
+	if p == nil then return nil end
+	
+	if p.guid ~= UnitGUID( unit ) then
+		self.players[index] = nil
+		return nil
+	end
+	
+	return p
+end
