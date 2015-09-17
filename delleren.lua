@@ -40,6 +40,8 @@ function Delleren:OnInitialize()
 	
 	self:RegisterEvent( "UNIT_SPELLCAST_SUCCEEDED", 
 						"OnUnitSpellcastSucceeded" )
+	
+	self:RegisterComm( "DELLEREN" )
 end
 
 -------------------------------------------------------------------------------
@@ -111,47 +113,17 @@ end
 function Delleren:UnlockFrames()
 	if self.unlocked then return end
 	
-	if UnitAffectingCombat( "player" ) then
-		print( "Cannot unlock in combat!" )
-		return
-	end
+	--if UnitAffectingCombat( "player" ) then
+	--	print( "Cannot unlock in combat!" )
+	--	return
+	--end
 	
-	if self.query.active or self.help.active then
-		print( "Cannot unlock when busy!" )
-		return
-	end
-	 
-	if not self.drag_stuff then
-		self.drag_stuff = {}
-		
-		local frame = self.frames.indicator
-		
-		local green = frame:CreateTexture()
-		green:SetAllPoints()
-		green:SetTexture( 0,0.5,0,0.4 )
-		 
-		frame:SetScript("OnMouseDown", function(self,button)
-			if button == "LeftButton" then
-				self:StartMoving()
-			else
-				Delleren:LockFrames()
-			end
-		end)
-		
-		frame:SetScript( "OnMouseUp", function(self)
-			self:StopMovingOrSizing()
-		end)
- 
-		self.drag_stuff.green = green 
-	else
-		self.drag_stuff.green:Show()
-		
-	end
+	--if self.query.active or self.help.active then
+	--	print( "Cannot unlock when busy!" )
+	--	return
+	--end
 	
-	self.frames.indicator:EnableMouse( true )
-	self.frames.indicator:Show()
-	self:SetIndicatorText( "Right click to lock." )
-	self:frames.indicator:SetTextColor( 1, 1, 1, 1 )
+	self.Indicator:EnableDragging()
 	
 	self.unlocked = true
 	self.saved.locked = false
@@ -165,15 +137,7 @@ function Delleren:LockFrames()
 	self.unlocked = false
 	self.saved.locked = true
 	
-	self.drag_stuff.green:Hide()
-	self:HideIndicatorText()
-	self.frames.indicator:EnableMouse( false )
-	self.frames.indicator:Hide()
-end
-
--------------------------------------------------------------------------------
-function Delleren:HideIndicatorText( caption )
-	self.frames.indicator.text:Hide()
+	self.Indicator:DisableDragging()
 end
 
 -------------------------------------------------------------------------------
@@ -321,11 +285,6 @@ local function HasCDReady( ignore_reserve, list, item )
 end
 
 -------------------------------------------------------------------------------
-function Delleren:OnInitialize()
-	self:RegisterComm( "DELLEREN" )
-end
-
--------------------------------------------------------------------------------
 function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 	if prefix ~= self.COMM_PREFIX then return end -- discard unwanted messages
 	
@@ -350,18 +309,7 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		
 	elseif msg == "READY" then
 		
-		if not self.query.active or data.rid ~= self.query.rid then 
-			return -- invalid message
-		end
-		
-		local unit = UnitIDFromName( sender )
-		if unit ~= nil and UnitLongRange( unit ) then
-		
-			table.insert( self.query.list, { unit = unit, id = data.id } )
-			
-		else
-			-- out of range or cant find unit id
-		end
+		self.Query:HandleReadyMessage( sender, data )
 		
 	elseif msg == "GIVE" then
 		-- player is asking for a CD
@@ -438,51 +386,7 @@ function Delleren:DeclineCD( target, rid )
 	local data = { rid = rid }
 	self:Comm( "NO", data, "WHISPER", target )
 end
-
--------------------------------------------------------------------------------
--- Start a new QUERY.
---
--- @param list List of spell or item IDs to ask for.
--- @param item true if we are requesting an item to be used.
--- @param buff true if we expect the id to cast a buff on us. false if we
---             just want them to use the spell or item without caring for
---             the target.
---
-function Delleren:StartQuery( list, item, buff )
-	
-end
-
--------------------------------------------------------------------------------
-
-
--------------------------------------------------------------------------------
-function CDPlease:OnHelpUpdate()
-	
-	local t = GetTime() - g_help_time
-	
-	if GetTime() >= g_help_pulse then
-		g_help_pulse = g_help_pulse + 1
-		self:SetAnimation( "HELP", "HELP" )
-		
-		self:PlaySound( "HELP" )
-	end
-	--
---	if not HasCDReady( true ) then
---		g_help_active = false
---		self:SetAnimation( "HELP", "FAILURE" )
---		g_help_active = false
---		return
---	end
-	
-	if t >= CD_WAIT_TIMEOUT then
-		self:PlaySound( "FAIL" )
-		self:SetAnimation( "HELP", "FAILURE" )
-		g_help_active = false
-		return
-	end
-	
-end
-
+  
 -------------------------------------------------------------------------------
 -- Frame update handler.
 --
@@ -549,4 +453,39 @@ function SlashCmdList.DELLEREN( msg )
 		print( "/delleren call - Call for a cd." )
 	end
 	  
+end
+
+-------------------------------------------------------------------------------
+function Delleren:ReMasque()
+	if self.masque_group then
+		self.masque_group:ReSkin()
+	end
+end
+
+-------------------------------------------------------------------------------
+-- Iterates through unit IDs of your party or raid, excluding the player
+--
+function Delleren:IteratePlayers()
+	local raid   = IsInRaid()
+	local index  = 0
+	local player = UnitGUID("player")
+	
+	return function()
+	
+		while true do
+			index = index + 1
+			if (raid and index > 40) or (not raid and index > 4) then 
+				return nil 
+			end
+			
+			local unit = (raid and "raid" or "party") .. index
+			if UnitExists(unit) and UnitGUID( unit ) ~= player then
+				return unit
+			end
+		end
+		
+	end
+		
+	
+	
 end

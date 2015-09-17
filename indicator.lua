@@ -6,25 +6,29 @@
 -- See LICENSE-DELLEREN.TXT
 -------------------------------------------------------------------------------
 
+local Delleren = DellerenAddon
+
 -------------------------------------------------------------------------------
-DellerenAddon.Indicator = {
+Delleren.Indicator = {
 	ani = {
 		state    = "NONE";
 		time     = 0;
 		finished = true;
 	};
+	font = "Fonts\\FRIZQT__.TTF";
+	fontsize = 16;
 	frame = nil;
 }
 
 -------------------------------------------------------------------------------
-function DellerenAddon.Indicator:SetText( caption )
+function Delleren.Indicator:SetText( caption )
 	self.frames.indicator.text:SetText( caption )
 	self.frames.indicator.text:Show()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon.Indicator:Init()
-	local frame = CreateFrame( "Button", "DellerenIndicator" ) 
+function Delleren.Indicator:Init()
+	local frame = CreateFrame( "Button", "DellerenIndicator" )
 	self.frame = frame
 	
 	frame:SetMovable( true )
@@ -39,20 +43,21 @@ function DellerenAddon.Indicator:Init()
 	frame.text:SetPoint( "CENTER", self.frame, 0, 0 )
 	frame.text:Hide()
 	
-	local icon = self.frame:CreateTexture( nil, "BACKGROUND" );
+	local icon = self.frame:CreateTexture( nil, "BACKGROUND" )
 	icon:SetAllPoints( frame )
 	frame.icon = icon
-	icon:SetTexture( "Interface\\Icons\\spell_holy_painsupression" );
+	icon:SetTexture( "Interface\\Icons\\spell_holy_painsupression" )
 	
-	if DellerenAddon.masque_group then
-		--self.masque_group:AddButton( frame )
+	if Delleren.masque_group then
+		--Delleren.masque_group:AddButton( frame )
+		Delleren:ReMasque()
 	end
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon.Indicator:SetAnimation( source, state )
+function Delleren.Indicator:SetAnimation( source, state )
 
-	if source == "QUERY" and DellerenAddon.help.active then 
+	if source == "QUERY" and Delleren.help.active then 
 		-- do not interfere with help interface
 		return
 	end
@@ -63,7 +68,7 @@ function DellerenAddon.Indicator:SetAnimation( source, state )
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon.Indicator:UpdateAnimation()
+function Delleren.Indicator:UpdateAnimation()
 	local t = GetTime() - self.ani.time
 	
 	if self.ani.state == "ASKING" then
@@ -108,7 +113,7 @@ function DellerenAddon.Indicator:UpdateAnimation()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon.Indicator:ShowHelpRequest( sender )
+function Delleren.Indicator:ShowHelpRequest( sender )
 	self.help.active = true
 	self.help.unit   = UnitIDFromName( sender )
 	self.help.time   = GetTime()
@@ -120,10 +125,78 @@ function DellerenAddon.Indicator:ShowHelpRequest( sender )
 	self.frame:Show()
 	
 	-- TODO: move this?
-	DellerenAddon:EnableFrameUpdates()
+	Delleren:EnableFrameUpdates()
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon.Indicator:Hide()
+function Delleren.Indicator:Hide()
+	self.frame.Hide()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Indicator:Show()
+	self.frame.Show()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Indicator:SetIcon( icon )
+	self.frame.icon:SetTexture( icon )
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Indicator:EnableDragging( icon )
+
+	if self.dragframe == nil then
+		local green = self.frame:CreateTexture()
+		green:SetAllPoints()
+		green:SetTexture( 0, 0.5, 0, 0.4 )
+		 
+		self.frame:SetScript("OnMouseDown", function(self,button)
+			if button == "LeftButton" then
+				self:StartMoving()
+			else
+				Delleren:LockFrames()
+			end
+		end)
+		
+		self.frame:SetScript( "OnMouseUp", function(self)
+			self:StopMovingOrSizing()
+		end)
+		
+		self.dragframe = green
+	end
 	
+	self.dragframe:Show()
+	self.frame:EnableMouse( true )
+	self.frame:Show()
+	self.frame:SetTexture( "Interface\\Icons\\spell_holy_painsupression" )
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Indicator:DisableDragging( icon )
+	self.dragframe:Hide()
+	self.frame:EnableMouse( false )
+	self.frame:Hide()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Indicator:SetFontSize( size )
+	if size < 4 then size = 4 end
+	if size > 32 then size = 32 end
+	self.fontsize = size
+	self.frame:SetFont( self.font, size, "OUTLINE" )
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Indicator:SetFont( font )
+	self.frame:SetFont( font, self.fontsize, "OUTLINE" )
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Indicator:SetFrameSize( size )
+	size = math.max( size, 16 )
+	size = math.min( size, 256 )
+	self.frame:SetSize( size, size )
+	
+	Delleren:ReMasque()
 end

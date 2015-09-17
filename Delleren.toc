@@ -6,8 +6,14 @@
 ## OptionalDeps: Masque
 ## Version: 0.1
 embeds.xml
+
 init.lua
+
 delleren.lua
+help.lua
 indicator.lua
+query.lua
+sounds.lua
+status.lua
 
 startup.lua

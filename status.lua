@@ -4,8 +4,10 @@
 -- See LICENSE-DELLEREN.TXT
 -------------------------------------------------------------------------------
 
+local Delleren = DellerenAddon
+
 -------------------------------------------------------------------------------
-DellerenAddon.Status = {
+Delleren.Status = {
 
 	-- indexed 1-4 in party (party1-4), and 1-40 in raid (raid1-40)
 	players = {};
@@ -91,7 +93,7 @@ end
 -- @param unit UnitID of player. Must be a party or raid unit ID.
 -- @param data The data of the STATUS comm message.
 --
-function DellerenAddon.Status:UpdatePlayer( unit, data ) {
+function Delleren.Status:UpdatePlayer( unit, data ) {
 	local index = GetPlayerIndex( unit )
 	if index == nil then return end
 	
@@ -142,7 +144,7 @@ function DellerenAddon.Status:UpdatePlayer( unit, data ) {
 -------------------------------------------------------------------------------
 -- Remove entries that do not match their player guid.
 --
-function DellerenAddon.Status:PrunePlayers()
+function Delleren.Status:PrunePlayers()
 	if IsInRaid() then
 		for i = 1,40 do
 			local p = self.players[i]
@@ -167,7 +169,7 @@ end
 -------------------------------------------------------------------------------
 -- Refresh the status data after receiving an update from a player.
 --
-function DellerenAddon.Status:Refresh()
+function Delleren.Status:Refresh()
 	
 	local submap = {}
 	
@@ -222,24 +224,24 @@ end
 -------------------------------------------------------------------------------
 -- Send a status message to the raid. Will delay a while first.
 --
-function DellerenAddon.Status:Send( poll )
+function Delleren.Status:Send( poll )
 	if self.sending then return end
 	
 	self.sending = true
 	self.poll    = poll
 	
-	DellerenAddon:ScheduleTimer( "SendStatusDelayed", 5 )
+	Delleren:ScheduleTimer( "SendStatusDelayed", 5 )
 end
 
 -------------------------------------------------------------------------------
-function DellerenAddon:SendStatusDelayed()
+function Delleren:SendStatusDelayed()
 	self.Status.SendDelayed()
 end
 
 -------------------------------------------------------------------------------
 -- Actual sending function, delayed.
 --
-function DellerenAddon.Status:SendDelayed()
+function Delleren.Status:SendDelayed()
 	
 	-- build status message
 	local data = {}
@@ -310,13 +312,13 @@ function DellerenAddon.Status:SendDelayed()
 		table.insert( data.sub, spellid )
 	end
 	
-	DellerenAddon:Comm( "STATUS", data, "RAID" )
+	Delleren:Comm( "STATUS", data, "RAID" )
 end
 
 -------------------------------------------------------------------------------
 -- Returns true if a spell is subbed by the raid.
 --
-function DellerenAddon.Status:IsSubbed( spell )
+function Delleren.Status:IsSubbed( spell )
 	return self.submap[spell]
 end
 
@@ -326,7 +328,7 @@ end
 -- @param spell ID of spell used.
 -- @param unit UnitID of player.
 --
-function DellerenAddon.Status:OnSpellUsed( spell, unit )
+function Delleren.Status:OnSpellUsed( spell, unit )
 	
 	local index = GetPlayerIndex( unit )
 	if index == -1 then
@@ -367,3 +369,4 @@ function DellerenAddon.Status:OnSpellUsed( spell, unit )
 		end
 	end
 end
+

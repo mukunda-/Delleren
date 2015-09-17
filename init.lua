@@ -13,16 +13,6 @@ DellerenAddon = LibStub("AceAddon-3.0"):NewAddon( "Delleren",
 local Delleren = DellerenAddon
 
 -------------------------------------------------------------------------------
-Delleren.help = {
-	active = false; -- if we are currently being asked for a cd
-	unit   = nil;   -- unitid that is asking for the cd
-	spell  = nil;   -- spellid they are asking for
-	pulse  = 0;     -- time for the next pulse animation
-	rid    = 0;     -- request id
-}
-
--------------------------------------------------------------------------------
-Delleren.drag_stuff = {}
 Delleren.unlocked   = false
 			  
 -------------------------------------------------------------------------------

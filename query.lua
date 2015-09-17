@@ -8,16 +8,18 @@ local Delleren = DellerenAddon
 
 local QUERY_WAIT_TIME    = 0.25 -- time to wait for cd responses
 local QUERY_TIMEOUT      = 3.0  -- time to give up query
-local CD_WAIT_TIMEOUT    = 7.0  -- time to allow user to give us a cd
 local HARD_QUERY_TIMEOUT = 5.0  -- time for the query to stop even
                                 -- when there are options left!
+local HELP_TIMEOUT    = 7.0  -- time to allow user to cast a spell.
 
+-------------------------------------------------------------------------------
 Delleren.Query = {
 	active     = false;	-- if we are currently asking for a cd
 	time       = 0;     -- time that we changed states
 	start_time = 0;     -- time that we started the query
 	requested  = false; -- if a cd is being requested
 	spell      = nil;   -- spellid we are asking for
+	item       = nil;   -- true if this is an item request, nil if not
 	list       = {};    -- list of userids that have cds available
 	unit       = nil;   -- unitid of person we want a cd from 
 	rid        = 0;     -- request id
@@ -41,6 +43,7 @@ function Delleren.Query:Start( list, item, buff )
 	self.start_time    = self.time
 	self.requested     = false 
 	self.list          = {} 
+	self.item          = item or nil
 	self.request_id    = math.random( 1, 999999 )
 	
 	Delleren.Indicator:Show()
@@ -50,8 +53,8 @@ function Delleren.Query:Start( list, item, buff )
 		self:HideIndicatorText()
 	end
 	
-	local instant_list = {}
-	local check_list   = {}
+	local instant_list = {} -- spells that we can call for instantly
+	local check_list   = {} -- spells that we have to check for
 	
 	if not item then
 		for k,spell in ipairs(list) do
@@ -63,17 +66,39 @@ function Delleren.Query:Start( list, item, buff )
 		end
 	end
 	
+	-- TODO: player preference list
+	
 	if #instant_list > 0 then
 		-- do an instant request
 		
-		Delleren.Status:GetPlayersReady( 
-		
+		for unit in Delleren:IteratePlayers() do
+			local spell = Delleren.Status:HasSpellReady( instant_list )
+			if spell then
+				table.insert( self.list, { unit = unit, id = spell }
+			end
+		end
 	end
-	self:Comm( "
 	
-	self:SendCommMessage( COMM_PREFIX, "ASK", "RAID" )
+	if #self.list > 0 then
+		-- we can make an instant request
+		self:RequestCD()
+	else
+		
+		if #check_list > 0 then
+			Delleren:Comm( "
+		end
+	end
+	
+	--self:SendCommMessage( COMM_PREFIX, "ASK", "RAID" )
 	
 	Delleren:EnableFrameUpdates()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Query:Fail()
+	Delleren:PlaySound( "FAIL" )
+	Delleren.Indicator:SetAnimation( "QUERY", "FAILURE" )
+	self.active = false
 end
 
 -------------------------------------------------------------------------------
@@ -84,30 +109,25 @@ function Delleren.Query:Update()
 	if not self.requested then
 	
 		if t2 >= HARD_QUERY_TIMEOUT then
-			
-			Delleren:PlaySound( "FAIL" )
-			Delleren.Indicator:SetAnimation( "QUERY", "FAILURE" )
-			self.active = false
+			self:Fail()
 			return
+			 
 		end
 		
 		if t2 >= QUERY_WAIT_TIME then
 			if not self:RequestCD() then
 				if t2 >= QUERY_TIMEOUT then
 				
-					Delleren:PlaySound( "FAIL" )
-					Delleren.Indicator:SetAnimation( "QUERY", "FAILURE" )
-					self.active = false
+					self:Fail()
 					return
 				end
 			end
 		end
 		
 	else 
-		if t >= CD_WAIT_TIMEOUT then
-			Delleren:PlaySound( "FAIL" )
-			Delleren.Indicator:SetAnimation( "QUERY", "FAILURE" )
-			self.active = false
+		if t >= HELP_TIMEOUT then
+			self:Fail()
+			return
 		end
 	end 
 end
@@ -146,6 +166,7 @@ function Delleren.Query:RequestCD( sort )
 	local msgdata = {
 		rid  = self.query.rid;
 		buff = self.query.buff;
+		item = self.query.item;
 		id   = request_data.id;
 	}
 	
@@ -159,4 +180,29 @@ function Delleren.Query:RequestCD( sort )
 	end
 	
 	return true 
+end
+
+-------------------------------------------------------------------------------
+-- Process data received from a READY message.
+--
+function Delleren.Query:HandleReadyMessage( sender, data )
+	
+	if not self.active or data.rid ~= self.Query.rid then 
+		return -- invalid or lost message
+	end
+	
+	local unit = Delleren:UnitIDFromName( sender )
+	
+	if unit ~= nil and Delleren:UnitLongRange( unit ) then
+	
+		table.insert( self.list, 
+			{ 
+				unit = unit; 
+				id = data.id; 
+			})
+		
+	else
+		-- out of range or cant find unit id
+	end
+	
 end
