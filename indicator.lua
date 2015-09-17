@@ -22,8 +22,8 @@ Delleren.Indicator = {
 
 -------------------------------------------------------------------------------
 function Delleren.Indicator:SetText( caption )
-	self.frames.indicator.text:SetText( caption )
-	self.frames.indicator.text:Show()
+	self.frame.text:SetText( caption )
+	self.frame.text:Show()
 end
 
 -------------------------------------------------------------------------------
@@ -46,7 +46,7 @@ function Delleren.Indicator:Init()
 	local icon = self.frame:CreateTexture( nil, "BACKGROUND" )
 	icon:SetAllPoints( frame )
 	frame.icon = icon
-	icon:SetTexture( "Interface\\Icons\\spell_holy_painsupression" )
+	icon:SetTexture( "Interface\\Icons\\spell_holy_sealofsacrifice" )
 	
 	if Delleren.masque_group then
 		--Delleren.masque_group:AddButton( frame )
@@ -165,11 +165,11 @@ function Delleren.Indicator:EnableDragging( icon )
 		
 		self.dragframe = green
 	end
-	
+	self:SetText( "[Cooldown]\n[Player Name]" )
 	self.dragframe:Show()
 	self.frame:EnableMouse( true )
 	self.frame:Show()
-	self.frame:SetTexture( "Interface\\Icons\\spell_holy_painsupression" )
+	self.frame.icon:SetTexture( "Interface\\Icons\\spell_holy_sealofsacrifice" )
 end
 
 -------------------------------------------------------------------------------

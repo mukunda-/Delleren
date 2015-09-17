@@ -33,7 +33,7 @@ function Delleren:OnInitialize()
 	end
 	
 	if not self.saved.locked then
-		Delleren:Unlock() 
+		Delleren:UnlockFrames() 
 	end
 	
 	self:RegisterEvent( "UNIT_SPELLCAST_SUCCEEDED", 
@@ -47,19 +47,19 @@ function Delleren:OnUnitSpellcastSucceeded( event, unitID, rank,
 												 lineID, spellID )
 	self.Status:OnSpellUsed( unitID, spellID )
 	
-	if self.query.active and not self.query.buff 
-	   and spellID == self.query.spell 
-	   and UnitGUID( unitID ) == UnitGUID( self.query.unit ) then
+	if self.Query.active and not self.Query.buff 
+	   and spellID == self.Query.spell 
+	   and UnitGUID( unitID ) == UnitGUID( self.Query.unit ) then
 		
 		self.Indicator:SetAnimation( "QUERY", "SUCCESS" )
-		self.query.active = false
+		self.Query.active = false
 	end
 	
-	if self.help.active and not self.help.buff
-	   and spellID == self.help.spell then
+	if self.Help.active and not self.Help.buff
+	   and spellID == self.Help.spell then
 	   
 		self.Indicator:SetAnimation( "HELP", "SUCCESS" )
-		self.help.active = false
+		self.Help.active = false
 	end
 end
 
@@ -445,6 +445,10 @@ function Delleren:DisableFrameUpdates()
 	self:UnregisterEvent( "COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent" )
 end
 
+function Delleren:CallCommand( args )
+	
+end
+
 -------------------------------------------------------------------------------
 -- Slash command for macro binding.
 --
@@ -456,12 +460,12 @@ function SlashCmdList.DELLEREN( msg )
 	end
 	
 	if args[1] == nil then return end
-	args[1] = tolower( args[1] )
+	args[1] = string.lower( args[1] )
 	
 	if args[1] == "unlock" then
-		Delleren:Unlock()
+		Delleren:UnlockFrames()
 	elseif args[1] == "call" then
-		Delleren:CallCD() 
+		Delleren:CallCommand( args ) 
 	elseif args[1] == "config" then
 		Delleren:ShowConfig() 
 		
@@ -470,7 +474,7 @@ function SlashCmdList.DELLEREN( msg )
 		print( "My what a filthy mind you have!" )
 		 
 	else
-		print( "/delleren unlock - Unlock the frame." )
+		print( "/delleren unlock - Unlock frames." )
 		print( "/delleren config - Open configuration." )
 		print( "/delleren call - Call for a cd." )
 	end

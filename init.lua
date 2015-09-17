@@ -27,14 +27,11 @@ end
  
 -------------------------------------------------------------------------------
 function Delleren:InitFrames()
-	local frame = CreateFrame( "Button", "DellerenIndicator" ) 
-	
-	self.frames.indicator = frame
-	
-	local frame = CreateFrame( "Frame", "DellerenCDFrame" )
-	frame:SetMovable( true )
-	frame:EnableMouse( false )
-	frame:Show()
+ 
+--	local frame = CreateFrame( "Frame", "DellerenCDFrame" )
+--	frame:SetMovable( true )
+--	frame:EnableMouse( false )
+--	frame:Show()
 end
 
 -------------------------------------------------------------------------------

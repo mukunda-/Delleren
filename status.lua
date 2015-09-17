@@ -106,9 +106,9 @@ function Delleren.Status:UpdatePlayer( unit, data )
 	
 	-- convert data into friendly structure
 	local p = {
-		guid   = UnitGUID( unit )
-		spells = {}
-		subs   = {}
+		guid   = UnitGUID( unit );
+		spells = {};
+		subs   = {};
 	}
 	
 	for i = 1,#data.cds,5 do
@@ -139,7 +139,7 @@ function Delleren.Status:UpdatePlayer( unit, data )
 	if data.poll then
 		self:Send()
 	end
-}
+end
 
 -------------------------------------------------------------------------------
 -- Remove entries that do not match their player guid.
@@ -389,7 +389,7 @@ function Delleren.Status:HasSpellReady( unit, list )
 	local p = self:GetPlayerData( unit )
 	if p == nil then return nil end
 	
-	for _,spell in ipairs( list )
+	for _,spell in ipairs( list ) do
 		local sp = p.spells[spell]
 		if sp then
 			self:UpdateSpellCooldown( sp )
