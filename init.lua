@@ -42,7 +42,5 @@ function Delleren:Setup()
 	
 	self.Indicator:Init()
 	
-	if self.masque_group then
-		self.masque_group:ReSkin()
-	end
+	self:ReMasque()
 end

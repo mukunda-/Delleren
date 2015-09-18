@@ -40,6 +40,13 @@ function Delleren:OnInitialize()
 						"OnUnitSpellcastSucceeded" )
 	
 	self:RegisterComm( "DELLEREN" )
+	
+	
+end
+
+-------------------------------------------------------------------------------
+function Delleren:OnEnable()
+	self:ReMasque()
 end
 
 -------------------------------------------------------------------------------
@@ -71,35 +78,37 @@ end
 --
 function Delleren:OnAuraApplied( spellID, source, dest ) 
 
-	if self.query.active and self.query.buff 
-	   and source == UnitGUID( self.query.unit )
-	   and spellID == self.query.spell then
+	if self.Query.active and self.Query.buff 
+	   and self.Query.requested
+	   and source == UnitGUID( self.Query.unit )
+	   and spellID == self.Query.spell then
 	   
 		if dest == UnitGUID( "player" ) then
-			
+		
 			self.Indicator:SetAnimation( "QUERY", "SUCCESS" )
-			self.query.active = false
+			self.Query.active = false
 			
 		else
+		
 			-- cd was cast on someone else! find another one!
-			self.query.requested = false
+			self.Query.requested = false
 		end
 	end
 	
-	if self.help.active and self.help.buff 
+	if self.Help.active and self.Help.buff 
 	   and source == UnitGUID( "player" ) 
-	   and spellID == self.help.spell then
+	   and spellID == self.Help.spell then
  
-		if dest == UnitGUID( self.help.unit ) then
+		if dest == UnitGUID( self.Help.unit ) then
 			
 			self.Indicator:SetAnimation( "HELP", "SUCCESS" )
-			self.help.active = false
+			self.Help.active = false
 			
 		else
 			
 			self:PlaySound( "FAIL" )
 			self.Indicator:SetAnimation( "HELP", "FAILURE" )
-			self.help.active = false
+			self.Help.active = false
 		end
 	end
 end
@@ -123,7 +132,7 @@ function Delleren:UnlockFrames()
 	--	return
 	--end
 	
-	--if self.query.active or self.help.active then
+	--if self.Query.active or self.Help.active then
 	--	print( "Cannot unlock when busy!" )
 	--	return
 	--end
@@ -136,8 +145,7 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:LockFrames()
-	if not self.unlocked then return end
-	if not self.drag_stuff then return end
+	if not self.unlocked then return end 
 	
 	self.unlocked = false
 	self.saved.locked = true
@@ -166,9 +174,9 @@ function Delleren:Scale( size )
 end
 
 -------------------------------------------------------------------------------
--- Returns a raid or party unit id from a name given.
+-- Returns a raid or party unit id from a name or unitid given.
 --
-local function UnitIDFromName( name )
+function Delleren:UnitIDFromName( name )
 	-- TODO check what format name is in!
 
 	local r = UnitInRaid( name )
@@ -182,15 +190,6 @@ local function UnitIDFromName( name )
 	end
 	
 	return nil
-end
-
--------------------------------------------------------------------------------
-local function ColorLerp( r1, g1, b1, r2, g2, b2, a )
-	a = math.min( a, 1 )
-	a = math.max( a, 0 )
-	return r1 + (r2-r1) * a, 
-	       g1 + (g2-g1) * a, 
-		   b1 + (b2-b1) * a
 end
 
 -------------------------------------------------------------------------------
@@ -211,12 +210,12 @@ local function UnitDistance( unit )
 end
 
 -------------------------------------------------------------------------------
-local function UnitShortRange( unit )
+function Delleren:UnitShortRange( unit )
 	return UnitDistance( unit ) < 35 * 35 and IsItemInRange( 34471, unit )
 end
 
 -------------------------------------------------------------------------------
-local function UnitLongRange( unit )
+function Delleren:UnitLongRange( unit )
 	return IsItemInRange( 34471, unit )
 end
 
@@ -248,8 +247,8 @@ end
 -- @returns nil if no spells or items are ready, or returns the id of one
 --          that is ready.
 --
-local function HasCDReady( ignore_reserve, list, item )
-	if not ignore_reserve and (self.help.active) then
+function Delleren:HasCDReady( ignore_reserve, list, item )
+	if not ignore_reserve and (self.Help.active) then
 		-- someone is already asking us!
 		return nil
 	end
@@ -269,21 +268,21 @@ local function HasCDReady( ignore_reserve, list, item )
 		if not item then
 			if IsSpellKnown( v ) then
 				local charges = GetSpellCharges( v ) 
-				if charges ~= nil and charges >= 1 then return true end
+				if charges ~= nil and charges >= 1 then return v end
 				
 				local start, duration, enable = GetSpellCooldown( v )
-				if start == 0 then return true end
+				if start == 0 then return v end
 				
 				-- if there is 1 second left on the cd, then it's ready enough
 				-- also uh, account for gcd time which may interfere
-				if duration - (GetTime() - start) < 1.6 then return true end
+				if duration - (GetTime() - start) < 1.6 then return v end
 			end
 		else
 			if GetItemCount( v ) > 0 then
 				local start, duration, enable = GetItemCooldown( v )
-				if start == 0 then return true end
+				if start == 0 then return v end
 				
-				if duration - (GetTime() - start) < 1.6 then return true end
+				if duration - (GetTime() - start) < 1.6 then return v end
 			end
 		end
 	end
@@ -293,7 +292,7 @@ end
 function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 	if prefix ~= COMM_PREFIX then return end -- discard unwanted messages
 	
-	sender = UnitIDFromName( sender )
+	sender = self:UnitIDFromName( sender )
 	if sender == nil then return end -- bad message
 	
 	local result, msg, data = self:Deserialize( packed_message )
@@ -311,7 +310,7 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 	if msg == "CHECK" then
 		-- player is checking if we have a cd ready
 		
-		local id = HasCDReady( false, data.id, data.item )
+		local id = self:HasCDReady( false, data.ids, data.item )
 		
 		if id then
 			self:RespondReady( sender, data.rid, id )
@@ -324,11 +323,13 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 	elseif msg == "GIVE" then
 		-- player is asking for a CD
 		
-		if not HasCDReady( false, data.id, data.item ) then
+		if type(data.id) ~= "number" then return end -- bad message
+		
+		if not self:HasCDReady( false, data.id, data.item ) then
 		
 			self:DeclineCD( sender, data.rid )
 		else
-			self:ShowHelpRequest( sender, data.id, data.item, data.buff )
+			self.Help:Start( sender, data.id, data.item, data.buff )
 		end
 		
 	elseif msg == "NO" then
@@ -413,13 +414,13 @@ end
 -- Frame update handler.
 --
 function Delleren:OnFrame()
-	if self.query.active then self.Query:Update() end
-	if self.help.active  then self.Help:Update()  end
+	if self.Query.active then self.Query:Update() end
+	if self.Help.active  then self.Help:Update()  end
 	
 	self.Indicator:UpdateAnimation()
 	
-	if not self.query.active and not self.help.active 
-	    and self.ani.finished then
+	if not self.Query.active and not self.Help.active 
+	    and not self.Indicator:Animating() then
 		
 		self:DisableFrameUpdates()
 		self.Indicator:Hide()
@@ -430,6 +431,9 @@ end
 -- Enable animations and combat log parsing.
 --
 function Delleren:EnableFrameUpdates()
+
+	if self.updates_enabled then return end
+	self.updates_enabled = true
 	
 	self.Indicator.frame:SetScript( "OnUpdate", 
 							  function() Delleren:OnFrame() end )
@@ -441,12 +445,62 @@ end
 -- Disable animations and combat log parsing.
 --
 function Delleren:DisableFrameUpdates()
+	if not self.updates_enabled then return end
+	self.updates_enabled = false
+	
 	self.Indicator.frame:SetScript( "OnUpdate", nil )
 	self:UnregisterEvent( "COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent" )
 end
 
+-------------------------------------------------------------------------------
+-- Parse a call command and execute it.
+--
 function Delleren:CallCommand( args )
+
+	if self.Query.active then return end
 	
+	local spells = {}
+	local players = {}
+	local item   = false
+	local manual = false
+	local buff   = true
+	
+	local mode = "SPELLS"
+	
+	for i = 2,#args do
+		local arg = args[i]
+		if arg == "-s" then
+			mode = "SPELLS"
+		elseif arg == "-p" then
+			mode = "PLAYERS"
+		elseif arg == "-i" then
+			item = true
+			buff = false
+		elseif arg == "-m" then
+			manual = true
+		elseif arg == "-c" then
+			buff = false
+		else
+		
+			if mode == "SPELLS" then
+				local spellid = tonumber( arg )
+				if not spellid then
+					print( "[Delleren] Invalid Spell ID: " .. arg )
+				end
+				table.insert( spells, spellid )
+				
+			elseif mode == "PLAYERS" then
+				table.insert( players, arg )
+			end
+		end
+	end
+	
+	if #spells == 0 then
+		print( "[Delleren] No spell IDs given!" )
+		return
+	end
+	
+	self.Query:Start( spells, item, buff )
 end
 
 -------------------------------------------------------------------------------
@@ -470,8 +524,8 @@ function SlashCmdList.DELLEREN( msg )
 		Delleren:ShowConfig() 
 		
 	elseif args[1] == "fuck" then
-		
-		print( "My what a filthy mind you have!" )
+		Delleren:ReMasque()
+		print( "[Delleren] My what a filthy mind you have!" )
 		 
 	else
 		print( "/delleren unlock - Unlock frames." )
@@ -511,4 +565,13 @@ function Delleren:IteratePlayers()
 		end
 		
 	end
+end
+
+-------------------------------------------------------------------------------
+-- Returns a unit name colored by their class.
+--
+function Delleren:UnitNameColored( unit )
+	local _,cls = UnitClass(unit)
+	
+	return "|c" .. RAID_CLASS_COLORS[cls].colorStr .. UnitName(unit) .. "|r"
 end

@@ -90,8 +90,8 @@ status updates when a single player in a party includes it in their "sub" list
 in their STATUS messages.
 
 STATUS is sent when:
-a player joins a party (with poll=true to refresh everyone else)
-a player reloads their ui (with poll=true to refresh everyone else)
+a player joins a party (sent by the joining player, with poll=true to refresh everyone else)
+a player reloads their ui (sent by the reloaded player, with poll=true to refresh everyone else)
 a player's subscribed spell list changes
    this may cause a sequence of status messages, for example:
      player2 sends status, nothing changes
@@ -117,3 +117,22 @@ requests:
  green+fade   : given					    good sound
  red+fade     : timed out! bad raider!    fail sound
 
+
+ --------------------
+ DELLEREN CALL COMMAND
+ 
+/call {spell ids} [-p {player list}] [-i] [-m] [-c]
+
+{spell ids} = list of spell IDs to ask for, separated by spaces
+-p starts a player listing, spells will be asked from the players listed in descending order
+and only from unlisted players if there is a * present ie
+
+ llanna migs delleren *  -- will try to get one from llanna, then migs, then delleren, then whoever
+                            if the * isnt there then it will cancel the operation if the three dont
+			    satisfy the request
+			    
+-i turns the query into an item request, so the spell ids are instead item ids
+-m turns it into a manual request, which opens a menu with ready players rather than
+   asking automatically
+-c tells the query to not expect a buff to be cast on us, only for the player to use the spell
+   this is assumed for item requests

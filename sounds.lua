@@ -8,10 +8,10 @@ local Delleren = DellerenAddon
 
 -------------------------------------------------------------------------------
 local SOUND_LIST = {
-	["FAIL"] = "Interface\\Addons\\cdplease\\sounds\\fail.ogg";
-	["ASK"]  = "Interface\\Addons\\cdplease\\sounds\\ask.ogg";
-	["HELP"] = "Interface\\Addons\\cdplease\\sounds\\help.ogg";
-	["GOOD"] = "Interface\\Addons\\cdplease\\sounds\\good.ogg";
+	["FAIL"] = "Interface\\Addons\\Delleren\\sounds\\fail.ogg";
+	["ASK"]  = "Interface\\Addons\\Delleren\\sounds\\ask.ogg";
+	["HELP"] = "Interface\\Addons\\Delleren\\sounds\\help.ogg";
+	["GOOD"] = "Interface\\Addons\\Delleren\\sounds\\good.ogg";
 }
 
 -------------------------------------------------------------------------------

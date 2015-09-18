@@ -7,8 +7,8 @@
 local Delleren = DellerenAddon
 
 local QUERY_WAIT_TIME    = 0.25 -- time to wait for cd responses
-local QUERY_TIMEOUT      = 3.0  -- time to give up query
-local HARD_QUERY_TIMEOUT = 5.0  -- time for the query to stop even
+local QUERY_TIMEOUT      = 2.0  -- time to give up query
+local HARD_QUERY_TIMEOUT = 4.0  -- time for the query to stop even
                                 -- when there are options left!
 local HELP_TIMEOUT       = 7.0  -- time to allow user to cast a spell.
 
@@ -36,23 +36,25 @@ Delleren.Query = {
 -- @param buff true if we expect the id to cast a buff on us. false if we
 --             just want them to use the spell or item without caring for
 --             the target.
---
+--			   
 function Delleren.Query:Start( list, item, buff )
 	if self.active then return end -- query in progress already
 	
-	self.active        = true
-	self.time          = GetTime()
-	self.start_time    = self.time
-	self.requested     = false 
-	self.list          = {} 
-	self.item          = item or nil
-	self.request_id    = math.random( 1, 999999 )
+	self.active      = true
+	self.time        = GetTime()
+	self.start_time  = self.time
+	self.requested   = false 
+	self.buff        = buff
+	self.list        = {} 
+	self.item        = item or nil
+	self.rid         = math.random( 1, 999999 )
+	
 	
 	Delleren.Indicator:Show()
 	Delleren.Indicator:SetAnimation( "QUERY", "POLLING" )
 	
-	if not self.help.active then
-		self:HideIndicatorText()
+	if not Delleren.Help.active then
+		Delleren.Indicator:HideText()
 	end
 	
 	local instant_list = {} -- spells that we can call for instantly
@@ -60,7 +62,7 @@ function Delleren.Query:Start( list, item, buff )
 	
 	if not item then
 		for k,spell in ipairs(list) do
-			if self.Status:IsSubbed( spell ) then
+			if Delleren.Status:IsSubbed( spell ) then
 				table.insert( instant_list, spell )
 			else
 				table.insert( check_list, spell )
@@ -83,12 +85,18 @@ function Delleren.Query:Start( list, item, buff )
 	
 	if #self.list > 0 then
 		-- we can make an instant request
+		
 		self:RequestCD()
+		Delleren:PlaySound( "ASK" )
 	else
 		
 		if #check_list > 0 then
-			
+		
 			self:SendCheck( check_list )
+			Delleren:PlaySound( "ASK" )
+		else
+		
+			self:Fail()
 		end
 	end
 	
@@ -98,10 +106,14 @@ end
 -------------------------------------------------------------------------------
 function Delleren.Query:SendCheck( list )
 	local data = {
-		rid  = self.request_id;
+		rid  = self.rid;
 		ids  = list;
 		item = self.item;
 	}
+	
+	if not Delleren.Help.active then
+		Delleren.Indicator:SetIconID( list[1], self.item )
+	end
 	
 	Delleren:Comm( "CHECK", data, "RAID" )
 end
@@ -117,6 +129,11 @@ end
 function Delleren.Query:Update()
 	local t  = GetTime() - self.time
 	local t2 = GetTime() - self.start_time
+	
+	if UnitIsDeadOrGhost( "player" ) then
+		self:Fail()
+		return
+	end	
 	
 	if not self.requested then
 	
@@ -138,6 +155,11 @@ function Delleren.Query:Update()
 		
 	else 
 		if t >= HELP_TIMEOUT then
+			self:Fail()
+			return
+		end
+		
+		if UnitIsDeadOrGhost( self.unit ) then
 			self:Fail()
 			return
 		end
@@ -163,27 +185,47 @@ function Delleren.Query:RequestCD( sort )
 		end
 	)
 	
-	local request_data = self.list[ #self.query.list ]
+	local request_data = self.list[ #self.list ]
 	table.remove( self.list )
 	
 	self.unit      = request_data.unit
 	self.requested = true
 	self.time      = GetTime()
+	self.spell     = request_data.id
 	
 	local msgdata = {
-		rid  = self.query.rid;
-		buff = self.query.buff;
-		item = self.query.item;
-		id   = request_data.id;
+		rid  = self.rid;
+		buff = self.buff;
+		item = self.item;
+		id   = self.spell;
 	}
 	
-	Delleren:Comm( "GIVE", msgdata, "WHISPER", unit )
+	Delleren:Comm( "GIVE", msgdata, "WHISPER", self.unit )
 	
-	Delleren.Indicator:SetAnimation( "QUERY", "ASKING" )
-	Delleren:PlaySound( "ASK" )
+	Delleren.Indicator:SetAnimation( "QUERY", "ASKING" ) 
 	
-	if not self.help.active then
-		self:SetIndicatorText( UnitName( self.unit ))
+	if not Delleren.Help.active then
+		
+		local unit_name = Delleren:UnitNameColored( self.unit )
+		local request_text
+		local request_icon
+		
+		if not self.item then
+			local name, _, icon = GetSpellInfo( self.spell )
+			request_text = name
+			request_icon = icon
+		else
+			local name,_,_,_,_,_,_,_,_,texture = GetItemInfo( self.spell )
+			request_text = name
+			request_icon = texture
+		end
+		
+		request_text = request_text or "???"
+		request_icon = request_icon or ""
+		
+		Delleren.Indicator:SetText( unit_name .. "\n" .. request_text  )
+		Delleren.Indicator:SetIcon( request_icon )
+	
 	end
 	
 	return true 
@@ -192,16 +234,14 @@ end
 -------------------------------------------------------------------------------
 -- Process data received from a READY message.
 --
-function Delleren.Query:HandleReadyMessage( sender, data )
-	
-	if not self.active or data.rid ~= self.Query.rid then 
+function Delleren.Query:HandleReadyMessage( unit, data )
+	 
+	if not self.active or data.rid ~= self.rid then 
 		return -- invalid or lost message
 	end
 	
-	local unit = Delleren:UnitIDFromName( sender )
-	
-	if unit ~= nil and Delleren:UnitLongRange( unit ) then
-	
+	if Delleren:UnitLongRange( unit ) then
+		
 		table.insert( self.list, 
 			{ 
 				unit = unit; 
