@@ -9,6 +9,7 @@ embeds.xml
 
 init.lua
 
+config.lua
 delleren.lua
 help.lua
 indicator.lua

@@ -121,7 +121,7 @@ requests:
  --------------------
  DELLEREN CALL COMMAND
  
-/call {spell ids} [-p {player list}] [-i] [-m] [-c]
+/call {spell ids} [-p {player list}] [-i] [-m] [-c] [-e id]
 
 {spell ids} = list of spell IDs to ask for, separated by spaces
 -p starts a player listing, spells will be asked from the players listed in descending order
@@ -136,3 +136,6 @@ and only from unlisted players if there is a * present ie
    asking automatically
 -c tells the query to not expect a buff to be cast on us, only for the player to use the spell
    this is assumed for item requests
+-e causes the command to only work during a certain encounter (with the given id)
+   multiple call commands can be put into a single macro, but only one command can be executed at a time
+   

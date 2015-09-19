@@ -205,7 +205,7 @@ function Delleren.Indicator:EnableDragging( icon )
 		green.text = self.frame:CreateFontString()
 		green.text:SetFont( "Fonts\\FRIZQT__.TTF", 8, "OUTLINE" ) 
 		green.text:SetPoint( "CENTER", green, 0, 0 )
-		green.text:SetText( "Delleren Indicator" )
+		green.text:SetText( "Delleren Indicator\nRight click to lock." )
 		
 		self.frame:SetScript("OnMouseDown", function(self,button)
 			if button == "LeftButton" then

@@ -41,7 +41,6 @@ function Delleren:OnInitialize()
 	
 	self:RegisterComm( "DELLEREN" )
 	
-	
 end
 
 -------------------------------------------------------------------------------
@@ -121,6 +120,16 @@ function Delleren:OnCombatLogEvent( event, ... )
 		self:OnAuraApplied( spellID, sourceGUID, destGUID )
 		
 	end
+
+end
+
+-------------------------------------------------------------------------------
+function Delleren:ToggleFrameLock()
+	if self.unlocked then
+		self:LockFrames()
+	else
+		self:UnlockFrames()
+	end
 end
   
 -------------------------------------------------------------------------------
@@ -141,6 +150,8 @@ function Delleren:UnlockFrames()
 	
 	self.unlocked = true
 	self.saved.locked = false
+	
+	LibStub("AceConfigRegistry-3.0"):NotifyChange("Delleren")
 end
 
 -------------------------------------------------------------------------------
@@ -151,6 +162,8 @@ function Delleren:LockFrames()
 	self.saved.locked = true
 	
 	self.Indicator:DisableDragging()
+	
+	LibStub("AceConfigRegistry-3.0"):NotifyChange("Delleren")
 end
 
 -------------------------------------------------------------------------------
@@ -521,8 +534,7 @@ function SlashCmdList.DELLEREN( msg )
 	elseif args[1] == "call" then
 		Delleren:CallCommand( args ) 
 	elseif args[1] == "config" then
-		Delleren:ShowConfig() 
-		
+		Delleren.Config:Open()
 	elseif args[1] == "fuck" then
 		Delleren:ReMasque()
 		print( "[Delleren] My what a filthy mind you have!" )
