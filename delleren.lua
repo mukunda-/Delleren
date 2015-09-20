@@ -14,27 +14,16 @@ local COMM_PREFIX = "DELLEREN"
 
 -------------------------------------------------------------------------------		  
 function Delleren:OnInitialize()
+
 	SLASH_DELLEREN1 = "/delleren"
 	
 	if not DellerenAddonSaved then
 		DellerenAddonSaved = {}
 	end
 	
-	self.saved = DellerenAddonSaved
+	self.config = DellerenAddonSaved
 	
-	local data = DellerenAddonSaved
-	data.size = data.size or 48
-	
-	self.Indicator:SetFrameSize( data.size )
-	
-	if not self.saved.init then
-		self.saved.init = true
-		-- stuff...
-	end
-	
-	if not self.saved.locked then
-		Delleren:UnlockFrames() 
-	end
+	self.Config:Apply()
 	
 	self:RegisterEvent( "UNIT_SPELLCAST_SUCCEEDED", 
 						"OnUnitSpellcastSucceeded" )
@@ -149,7 +138,7 @@ function Delleren:UnlockFrames()
 	self.Indicator:EnableDragging()
 	
 	self.unlocked = true
-	self.saved.locked = false
+	self.config.locked = false
 	
 	LibStub("AceConfigRegistry-3.0"):NotifyChange("Delleren")
 end
@@ -159,32 +148,13 @@ function Delleren:LockFrames()
 	if not self.unlocked then return end 
 	
 	self.unlocked = false
-	self.saved.locked = true
+	self.config.locked = true
 	
 	self.Indicator:DisableDragging()
 	
 	LibStub("AceConfigRegistry-3.0"):NotifyChange("Delleren")
 end
 
--------------------------------------------------------------------------------
-function Delleren:Scale( size )
-	
-	size = tonumber( size )
-	if size == nil then return end
-	
-	self.frames.indicator.text:SetFont( 
-			"Fonts\\FRIZQT__.TTF", math.floor(16 * size/48), "OUTLINE" )
-	
-	size = math.max( size, 16 )
-	size = math.min( size, 256 )
-	
-	self.saved.size = size
-	self.frames.indicator:SetSize( size, size )
-
-	if self.masque_group then
-		self.masque_group:ReSkin()
-	end
-end
 
 -------------------------------------------------------------------------------
 -- Returns a raid or party unit id from a name or unitid given.
@@ -536,7 +506,7 @@ function SlashCmdList.DELLEREN( msg )
 	elseif args[1] == "config" then
 		Delleren.Config:Open()
 	elseif args[1] == "fuck" then
-		Delleren:ReMasque()
+
 		print( "[Delleren] My what a filthy mind you have!" )
 		 
 	else

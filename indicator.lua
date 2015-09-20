@@ -251,12 +251,12 @@ function Delleren.Indicator:SetFontSize( size )
 	if size < 4 then size = 4 end
 	if size > 32 then size = 32 end
 	self.fontsize = size
-	self.frame:SetFont( self.font, size, "OUTLINE" )
+	self.frame.text:SetFont( self.font, size, "OUTLINE" )
 end
 
 -------------------------------------------------------------------------------
 function Delleren.Indicator:SetFont( font )
-	self.frame:SetFont( font, self.fontsize, "OUTLINE" )
+	self.frame.text:SetFont( font, self.fontsize, "OUTLINE" )
 end
 
 -------------------------------------------------------------------------------
