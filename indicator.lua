@@ -59,10 +59,10 @@ function Delleren.Indicator:Init()
 	local frame = CreateFrame( "Button", "DellerenIndicator" )
 	self.frame = frame
 	
-	frame:SetMovable( true )
-	frame:SetResizable( true )
-	frame:SetMinResize( 16, 16 )
-	frame:SetPoint( "CENTER", 0, 0 )
+	--
+	--frame:SetResizable( true )
+	--frame:SetMinResize( 16, 16 )
+	frame:SetPoint( "CENTER", nil, 0, 0 )
 	frame:EnableMouse( false )
 	frame:Hide()
 	
@@ -201,14 +201,15 @@ function Delleren.Indicator:EnableDragging( icon )
 		local green = self.frame:CreateTexture()
 		green:SetAllPoints()
 		green:SetTexture( 0, 0.5, 0, 0.4 )
-		 
-		green.text = self.frame:CreateFontString()
-		green.text:SetFont( "Fonts\\FRIZQT__.TTF", 8, "OUTLINE" ) 
-		green.text:SetPoint( "CENTER", green, 0, 0 )
-		green.text:SetText( "Delleren Indicator\nRight click to lock." )
+		
+	--	green.text = self.frame:CreateFontString()
+	--	green.text:SetFont( "Fonts\\FRIZQT__.TTF", 8, "OUTLINE" ) 
+	--	green.text:SetPoint( "CENTER", green, 0, 0 )
+	--	green.text:SetText( "Delleren Indicator\nRight click to lock." )
 		
 		self.frame:SetScript("OnMouseDown", function(self,button)
 			if button == "LeftButton" then
+				self:SetMovable( true )
 				self:StartMoving()
 			else
 				Delleren:LockFrames()
@@ -217,17 +218,30 @@ function Delleren.Indicator:EnableDragging( icon )
 		
 		self.frame:SetScript( "OnMouseUp", function(self)
 			self:StopMovingOrSizing()
+			self:SetMovable( false )
+			
+			-- fixup to use center anchor
+			local x,y = self:GetCenter()
+			x = x - (768*GetMonitorAspectRatio()) / 2
+			y = y - 768/2
+			self:ClearAllPoints()
+			self:SetPoint( "CENTER", x, y )
+			
+			Delleren.config.indicator_x = x
+			Delleren.config.indicator_y = y
+			
 		end)
 		
 		self.dragframe = green
 	end
 	
 	if not Delleren.Query.active and not Delleren.Help.active then
-		self:HideText()
+		--self:HideText()
+		self:SetText( "Delleren\nRight-click to lock." )
 	end
 	
 	self.dragframe:Show()
-	self.dragframe.text:Show()
+	--self.dragframe.text:Show()
 	
 	self.frame:EnableMouse( true )
 	self.frame:SetAlpha( 1 )
@@ -239,11 +253,14 @@ function Delleren.Indicator:DisableDragging( icon )
 	
 	if self.dragframe then
 		self.dragframe:Hide()
-		self.dragframe.text:Hide()
+--		self.dragframe.text:Hide()
 	end
 	
 	self.frame:EnableMouse( false )
-	self.frame:Hide()
+	
+	if not Delleren.Query.active and not Delleren.Help.active then
+		self.frame:Hide()
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -251,11 +268,14 @@ function Delleren.Indicator:SetFontSize( size )
 	if size < 4 then size = 4 end
 	if size > 32 then size = 32 end
 	self.fontsize = size
+	
 	self.frame.text:SetFont( self.font, size, "OUTLINE" )
 end
 
 -------------------------------------------------------------------------------
 function Delleren.Indicator:SetFont( font )
+
+	self.font = font
 	self.frame.text:SetFont( font, self.fontsize, "OUTLINE" )
 end
 
@@ -266,4 +286,9 @@ function Delleren.Indicator:SetFrameSize( size )
 	self.frame:SetSize( size, size )
 	
 	Delleren:ReMasque()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Indicator:SetPosition( x, y )
+	self.frame:SetPoint( "CENTER", x, y )
 end

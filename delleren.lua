@@ -21,7 +21,14 @@ function Delleren:OnInitialize()
 		DellerenAddonSaved = {}
 	end
 	
+	self.Config:CreateDB()
+	
 	self.config = DellerenAddonSaved
+end
+
+-------------------------------------------------------------------------------
+function Delleren:OnEnable()
+	self:ReMasque()
 	
 	self.Config:Apply()
 	
@@ -30,11 +37,6 @@ function Delleren:OnInitialize()
 	
 	self:RegisterComm( "DELLEREN" )
 	
-end
-
--------------------------------------------------------------------------------
-function Delleren:OnEnable()
-	self:ReMasque()
 end
 
 -------------------------------------------------------------------------------
@@ -496,23 +498,19 @@ function SlashCmdList.DELLEREN( msg )
 		table.insert( args, i )
 	end
 	
-	if args[1] == nil then return end
-	args[1] = string.lower( args[1] )
+	if args[1] ~= nil then args[1] = string.lower( args[1] ) end
 	
-	if args[1] == "unlock" then
-		Delleren:UnlockFrames()
-	elseif args[1] == "call" then
+	if args[1] == "call" then
 		Delleren:CallCommand( args ) 
 	elseif args[1] == "config" then
 		Delleren.Config:Open()
 	elseif args[1] == "fuck" then
 
 		print( "[Delleren] My what a filthy mind you have!" )
-		 
+		
 	else
-		print( "/delleren unlock - Unlock frames." )
 		print( "/delleren config - Open configuration." )
-		print( "/delleren call - Call for a cd." )
+		print( "/delleren call - Call for a cd. (See manual.)" )
 	end
 	  
 end
