@@ -227,8 +227,8 @@ function Delleren.Indicator:EnableDragging( icon )
 			self:ClearAllPoints()
 			self:SetPoint( "CENTER", x, y )
 			
-			Delleren.config.indicator_x = x
-			Delleren.config.indicator_y = y
+			Delleren.Config.db.profile.icon_x = x
+			Delleren.Config.db.profile.icon_y = y
 			
 		end)
 		
@@ -281,8 +281,10 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren.Indicator:SetFrameSize( size )
+	
 	size = math.max( size, 16 )
 	size = math.min( size, 256 )
+	
 	self.frame:SetSize( size, size )
 	
 	Delleren:ReMasque()

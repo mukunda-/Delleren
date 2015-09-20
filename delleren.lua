@@ -17,13 +17,7 @@ function Delleren:OnInitialize()
 
 	SLASH_DELLEREN1 = "/delleren"
 	
-	if not DellerenAddonSaved then
-		DellerenAddonSaved = {}
-	end
-	
 	self.Config:CreateDB()
-	
-	self.config = DellerenAddonSaved
 end
 
 -------------------------------------------------------------------------------
@@ -140,7 +134,7 @@ function Delleren:UnlockFrames()
 	self.Indicator:EnableDragging()
 	
 	self.unlocked = true
-	self.config.locked = false
+	self.Config.db.profile.locked = false
 	
 	LibStub("AceConfigRegistry-3.0"):NotifyChange("Delleren")
 end
@@ -150,7 +144,7 @@ function Delleren:LockFrames()
 	if not self.unlocked then return end 
 	
 	self.unlocked = false
-	self.config.locked = true
+	self.Config.db.profile.locked = true
 	
 	self.Indicator:DisableDragging()
 	

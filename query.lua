@@ -87,13 +87,13 @@ function Delleren.Query:Start( list, item, buff )
 		-- we can make an instant request
 		
 		self:RequestCD()
-		Delleren:PlaySound( "ASK" )
+		Delleren:PlaySound( "CALL" )
 	else
 		
 		if #check_list > 0 then
 		
 			self:SendCheck( check_list )
-			Delleren:PlaySound( "ASK" )
+			Delleren:PlaySound( "CALL" )
 		else
 		
 			self:Fail()
