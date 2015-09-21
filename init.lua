@@ -19,6 +19,8 @@ function Delleren:InitMasque()
 	
 	if masque then
 		self.masque_group = masque:Group( "Delleren", "Button" )
+		self.masque_group_bar = masque:Group( "Delleren", "CDBar" )
+		self.masque = true
 	end
 	
 end

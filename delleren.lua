@@ -22,6 +22,9 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:OnEnable()
+	local test = self.CDButton:Create()
+	
+
 	self:ReMasque()
 	
 	self.Config:Apply()
@@ -511,8 +514,22 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:ReMasque()
-	if self.masque_group then
+	if self.masque then
 		self.masque_group:ReSkin()
+		self.masque_group_bar:ReSkin()
+	end
+end
+
+-------------------------------------------------------------------------------
+function Delleren:AddMasque( group, frame, data )
+	if self.masque then
+		if group == "BUTTON" then
+			self.masque_group:AddButton( frame, data )
+		elseif group == "CDBAR" then
+			self.masque_group_bar:AddButton( frame, data )
+		end
+		
+		self:ReMasque()
 	end
 end
 

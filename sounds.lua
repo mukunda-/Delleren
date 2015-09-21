@@ -19,7 +19,7 @@ function Delleren:PlaySound( sound )
 	
 	if info.enabled then
 	
-		PlaySoundFile( info.file, info.chan )
+		PlaySoundFile( info.file, Delleren.Config.db.profile.sound_channel )
 		
 	end
 end

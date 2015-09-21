@@ -76,10 +76,7 @@ function Delleren.Indicator:Init()
 	frame.icon = icon
 	icon:SetTexture( "Interface\\Icons\\spell_holy_sealofsacrifice" )
 	
-	if Delleren.masque_group then
-		Delleren.masque_group:AddButton( frame, {Icon = frame.icon} )
-		Delleren:ReMasque()
-	end
+	Delleren:AddMasque( "BUTTON", frame, {Icon = frame.icon} )
 end
 
 -------------------------------------------------------------------------------
@@ -227,8 +224,8 @@ function Delleren.Indicator:EnableDragging( icon )
 			self:ClearAllPoints()
 			self:SetPoint( "CENTER", x, y )
 			
-			Delleren.Config.db.profile.icon_x = x
-			Delleren.Config.db.profile.icon_y = y
+			Delleren.Config.db.profile.indicator.x = x
+			Delleren.Config.db.profile.indicator.y = y
 			
 		end)
 		

@@ -2,7 +2,7 @@
 ## Title: Delleren
 ## Notes: External defensive CD queries.
 ## Author: mukunda
-## SavedVariablesPerCharacter: DellerenAddonSaved
+## SavedVariables: DellerenAddonSaved
 ## OptionalDeps: Masque
 ## Version: 0.1
 embeds.xml
