@@ -15,11 +15,11 @@ SharedMedia:Register( "sound", "Delleren-Fail", "Interface\\Addons\\Delleren\\so
 -------------------------------------------------------------------------------
 function Delleren:PlaySound( sound )
 	
-	local info = Delleren.Config.db.profile.sounds[sound]
+	local info = Delleren.Config.db.profile.sound.sounds[sound]
 	
 	if info.enabled then
 	
-		PlaySoundFile( info.file, Delleren.Config.db.profile.sound_channel )
+		PlaySoundFile( info.file, Delleren.Config.db.profile.sound.channel )
 		
 	end
 end

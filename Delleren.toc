@@ -9,6 +9,8 @@ embeds.xml
 
 init.lua
 
+cdbar.lua
+cdbutton.lua
 config.lua
 delleren.lua
 help.lua

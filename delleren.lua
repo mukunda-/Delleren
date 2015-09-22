@@ -24,7 +24,7 @@ end
 function Delleren:OnEnable()
 	local test = self.CDButton:Create()
 	
-
+	
 	self:ReMasque()
 	
 	self.Config:Apply()
