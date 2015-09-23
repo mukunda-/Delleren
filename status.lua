@@ -9,15 +9,14 @@ local Delleren = DellerenAddon
 -------------------------------------------------------------------------------
 Delleren.Status = {
 
-	-- indexed 1-4 in party (party1-4), and 1-40 in raid (raid1-40)
+	-- indexed by player name
 	players = {};
 	
 	-- players structure:
 	-- players
-	--   [1-40] or [1-4] (party)
-	--     guid = player guid
+	--   [playername]
 	--     subs = { subbed spell ids, sorted }
-	--     spells[spellid] = { 
+	--     spells[spellid] = {
 	--                         duration;   -- the length of the cd
 	--                         charges;    -- number of charges that are ready
 	--                         maxcharges; -- the max number of charges 
@@ -27,23 +26,23 @@ Delleren.Status = {
 	--
 	
 	-- combined list of spells subscribed to by the raid, sorted
-	subs = {};
-	submap = {};
+	subs     = {};
+	submap   = {};
 	
 	-- subs filtered containing only spells that we know, sorted
-	fsubs = {};
+	fsubs    = {};
 	
 	-- fsubs as a map indexed by spellid, subbed spells are set to true
-	fsubmap = {};
+	fsubmap  = {};
 	
 	-- spells that we have subscribed to
-	mysubs = {};
+	mysubs   = {};
 	
 	-- program options
 	MAX_SUBS = 16;
 	
-	sending = false;
-	poll    = false;
+	sending  = false;
+	poll     = false;
 }
 
 -------------------------------------------------------------------------------
@@ -170,7 +169,6 @@ end
 -- Refresh the status data after receiving an update from a player.
 --
 function Delleren.Status:Refresh()
-	
 	local submap = {}
 	
 	self:PrunePlayers()

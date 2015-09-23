@@ -22,8 +22,17 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:OnEnable()
-	local test = self.CDButton:Create()
 	
+	self.CDBar:UpdateButtons(
+	
+		{
+			{ spell = 115072, stacks = 1,  disabled = false, time = 0,         duration = 0,  outrange = false };
+			{ spell = 121253, stacks = 2,  disabled = false, time = GetTime(), duration = 60, outrange = true  };
+			{ spell = 116841, stacks = 0,  disabled = true,  time = 0,         duration = 0,  outrange = false };
+			{ spell = 137562, stacks = 0,  disabled = false, time = 0,         duration = 0,  outrange = true  };
+			{ spell = 123986, stacks = 35, disabled = false, time = 0,         duration = 0,  outrange = false };
+		}
+	)
 	
 	self:ReMasque()
 	
@@ -135,11 +144,12 @@ function Delleren:UnlockFrames()
 	--end
 	
 	self.Indicator:EnableDragging()
+	self.CDBar:Unlock()
 	
 	self.unlocked = true
 	self.Config.db.profile.locked = false
 	
-	LibStub("AceConfigRegistry-3.0"):NotifyChange("Delleren")
+	LibStub( "AceConfigRegistry-3.0" ):NotifyChange( "Delleren" )
 end
 
 -------------------------------------------------------------------------------
@@ -150,6 +160,7 @@ function Delleren:LockFrames()
 	self.Config.db.profile.locked = true
 	
 	self.Indicator:DisableDragging()
+	self.CDBar:Lock()
 	
 	LibStub("AceConfigRegistry-3.0"):NotifyChange("Delleren")
 end
@@ -284,7 +295,7 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		return
 	end
 	
-	if UnitGUID( sender ) == UnitGUID ("player") then
+	if UnitGUID( sender ) == UnitGUID("player") then
 		-- ignore mirrored messages
 		return
 	end

@@ -41,6 +41,5 @@ function Delleren:Setup()
 	self:InitFrames() 
 	
 	self.Indicator:Init()
-	
-	self:ReMasque()
+	self.CDBar:Init()
 end

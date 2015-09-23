@@ -40,10 +40,8 @@ local OPTIONS_TABLE = {
 			name = "Lock Frames";
 			desc = "Locks/Unlocks frames to be moved.";
 			type = "toggle";
-			set = function(info,val) 
-				Delleren:ToggleFrameLock()
-			end;
-			get = function(info) return not Delleren.unlocked end;
+			set = function( info, val ) Delleren:ToggleFrameLock() end;
+			get = function( info ) return not Delleren.unlocked end;
 		};
 		
 		indicator = {
@@ -52,46 +50,43 @@ local OPTIONS_TABLE = {
 			args = {
 				
 				framesize = {
-					name = "Frame Size";
-					desc = "Size of the indicator frame.";
-					type = "range";
-					min  = 16;
-					max  = 256;
-					step = 1;
-					set  = function( info, val )
-						Delleren.Config:SetIndicatorScale( val )
-					end;
-					get  = function( info ) return Delleren.Config.db.profile.indicator.size end;
+					name  = "Frame Size";
+					desc  = "Size of the indicator frame.";
+					type  = "range";
+					min   = 16;
+					max   = 256;
+					step  = 1;
+					set   = function( info, val ) Delleren.Config:SetIndicatorScale( val ) end;
+					get   = function( info ) return Delleren.Config.db.profile.indicator.size end;
 					order = 1;
 				};
+				
 				fontsize = {
-					name = "Font Size";
-					desc = "Size of the indicator font.";
-					type = "range";
-					min  = 4;
-					max  = 24;
-					step = 1;
-					set  = function( info, val )
-						Delleren.Config:SetIndicatorFontSize( val )
-					end;
-					get  = function( info ) return Delleren.Config.db.profile.indicator.fontsize end;
+					name  = "Font Size";
+					desc  = "Size of the indicator font.";
+					type  = "range";
+					min   = 4;
+					max   = 24;
+					step  = 1;
+					set   = function( info, val ) Delleren.Config:SetIndicatorFontSize( val ) end;
+					get   = function( info ) return Delleren.Config.db.profile.indicator.fontsize end;
 					order = 2;
 				};
+				
 				fontface = {
-					name = "Font";
-					desc = "Indicator font.";
-					type = "select"; 
-					set  = function( info, val )
-						Delleren.Config:SetIndicatorFont( val )
-					end;
-					get  = function( info ) return FindValueKey( Delleren.Config.font_list, Delleren.Config.db.profile.indicator.font ) end;
+					name  = "Font";
+					desc  = "Indicator font.";
+					type  = "select"; 
+					set   = function( info, val ) Delleren.Config:SetIndicatorFont( val ) end;
+					get   = function( info ) return FindValueKey( Delleren.Config.font_list, Delleren.Config.db.profile.indicator.font ) end;
 					order = 3;
 				};
+				
 				resetpos = {
-					name = "Reset Position";
-					desc = "Reset the indicator's position.";
-					type = "execute";
-					func = function() Delleren.Config:SetIndicatorPosition( 0, 0 ) end;
+					name  = "Reset Position";
+					desc  = "Reset the indicator's position.";
+					type  = "execute";
+					func  = function() Delleren.Config:SetIndicatorPosition( 0, 0 ) end;
 					order = 4;
 				};
 			};
@@ -103,14 +98,91 @@ local OPTIONS_TABLE = {
 			type = "group";
 			args = {
 				channel = {
-					name = "Sound Channel:";
-					desc = "Channel to play sounds on.";
-					type = "select";
+					name   = "Sound Channel:";
+					desc   = "Channel to play sounds on.";
+					type   = "select";
 					values = SOUND_CHANNELS;
-					set  = function( info, val ) Delleren.Config.db.profile.sound.channel = val end;
-					get  = function( info ) return Delleren.Config.db.profile.sound.channel end;
-					order = 1;
+					set    = function( info, val ) Delleren.Config.db.profile.sound.channel = val end;
+					get    = function( info ) return Delleren.Config.db.profile.sound.channel end;
+					order  = 1;
 				}; 
+			};
+		};
+		
+		cdbar = {
+			name = "CD Bar";
+			type = "group";
+			args = {
+				desc = {
+					name  = "The CD Bar is an actionbar-like display of CDs that you are tracking.";
+					type  = "description";
+					order = 1;
+				};
+				
+				enable = {
+					name  = "Enable";
+					desc  = "Enable the CD Bar.";
+					type  = "toggle";
+					set   = function( info, val ) Delleren.Config:EnableCDBar( val ) end;
+					get   = function( info ) return Delleren.Config.db.profile.cdbar.enabled end;
+					order = 2;
+				};
+				spacer2 = {
+					name  = "";
+					type  = "header";
+					order = 3;
+				};
+				
+				enable_mouse = {
+					name  = "Enable Mouse";
+					desc  = "Enable mouse interaction with the CD bar.";
+					type  = "toggle";
+					set   = function( info, val ) Delleren.Config:EnableCDBarMouse( val ) end;
+					get   = function( info ) return Delleren.Config.db.profile.cdbar.enable_mouse end;
+					order = 4;
+				};
+				
+				spacer1 = {
+					name  = "";
+					type  = "header";
+					order = 5;
+				};
+				
+				size = {
+					name  = "Button Size";
+					desc  = "Size of button frames.";
+					type  = "range";
+					min   = 8;
+					max   = 128;
+					step  = 1;
+					set   = function( info, val ) Delleren.Config:SetCDBarScale( val ) end;
+					get   = function( info ) return Delleren.Config.db.profile.cdbar.size end;
+					order = 10;
+				};
+				
+				columns = {
+					name  = "Columns";
+					desc  = "Number of columns in layout.";
+					type  = "range";
+					min   = 1;
+					max   = 32;
+					step  = 1;
+					set   = function( info, val ) Delleren.Config:SetCDBarColumns( val ) end;
+					get   = function( info ) return Delleren.Config.db.profile.cdbar.columns end;
+					order = 11;
+				};
+				
+				padding = {
+					name  = "Padding";
+					desc  = "Padding in between each button.";
+					type  = "range";
+					min   = -50;
+					max   = 50;
+					step  = 0.1;
+					set   = function( info, val ) Delleren.Config:SetCDBarPadding( val ) end;
+					get   = function( info ) return Delleren.Config.db.profile.cdbar.padding end;
+					order = 12;
+				};
 			};
 		};
 	};
@@ -191,6 +263,15 @@ local DB_DEFAULTS = {
 				};
 			};
 		};
+		
+		cdbar = {
+			size         = 48;
+			columns      = 4;
+			padding      = 0;
+			enable_mouse = true;
+			x            = 0;
+			y            = 0;
+		};
 	};
 }
 
@@ -247,13 +328,15 @@ end
 function Delleren.Config:Apply()
 
 	local data = self.db.profile
-	    
+	
 	Delleren.Indicator:SetFrameSize( data.indicator.size )
 	Delleren.Indicator:SetFontSize( data.indicator.fontsize )
 	Delleren.Indicator:SetFont( SharedMedia:Fetch( "font", data.indicator.font ))
 	Delleren.Indicator:SetPosition( data.indicator.x, data.indicator.y )
 	
 	self:CacheSoundPaths()
+	
+	Delleren.CDBar:UpdateLayout()
 	
 	if not data.locked then
 		Delleren:UnlockFrames()
@@ -305,4 +388,44 @@ end
 -------------------------------------------------------------------------------
 function Delleren.Config:SetSoundEnable( key, val )
 	self.db.profile.sound.sounds[key].enabled = val
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Config:SetCDBarScale( value )	
+	self.db.profile.cdbar.size = value
+	Delleren.CDBar:UpdateLayout()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Config:SetCDBarColumns( value )
+	self.db.profile.cdbar.columns = value
+	Delleren.CDBar:UpdateLayout()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Config:SetCDBarPadding( value )
+	self.db.profile.cdbar.padding = value
+	Delleren.CDBar:UpdateLayout()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Config:EnableCDBar( value )
+	self.db.profile.cdbar.enabled = value
+	
+	if value then
+		Delleren.CDBar:Enable()
+	else
+		Delleren.CDBar:Disable()
+	end
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Config:EnableCDBarMouse( value )
+	self.db.profile.cdbar.enable_mouse = value
+	
+	if value then	
+		Delleren.CDBar:EnableMouse()
+	else
+		Delleren.CDBar:DisableMouse()
+	end
 end
