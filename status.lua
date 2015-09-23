@@ -41,10 +41,11 @@ Delleren.Status = {
 	-- program options
 	MAX_SUBS = 16;
 	
-	sending  = false;
-	poll     = false;
+	refreshing = false;
+	sending    = false;
+	poll       = false;
 }
-
+--[[
 -------------------------------------------------------------------------------
 local function GetPlayerIndex( unit )
 	local a = UnitInRaid( unit )
@@ -55,57 +56,25 @@ local function GetPlayerIndex( unit )
 	end
 	
 	return nil
-end
-
--------------------------------------------------------------------------------
--- Compare two status blocks to see if they are the same.
---
--- @param a,b Two converted status messages.
--- @returns true if they are different.
---
-local function CompareStatus( a, b )
-
---	if a.guid ~= b.guid then return true end
---	
---	if #a.subs ~= #b.subs then
---		return true
---	end
---	
---	-- subs are sorted.
---	for i = 1,#a.subs do
---		if b.subs[i] ~= a.subs[i] then return true end
---	end
-	
---	for k,v in pairs( a.spells ) do
---		local v2 = b.spells[k]
---		if v2 == nil then return true end
---		
---		
---		if b.spells[k] == nil then return true end
---		if b.spells[
---	end
-end
+end]]
 
 -------------------------------------------------------------------------------
 -- Record the status of a player.
 --
--- @param unit UnitID of player. Must be a party or raid unit ID.
+-- @param name Name of player. (sender)
 -- @param data The data of the STATUS comm message.
 --
-function Delleren.Status:UpdatePlayer( unit, data )
-	local index = GetPlayerIndex( unit )
-	if index == nil then return end
+function Delleren.Status:UpdatePlayer( name, data )
 	
 	-- filter bad or potentially malicious data
 	if data.cds == nil then data.cds = {} end
 	if data.sub == nil then data.sub = {} end
 	if #data.sub > self.MAX_SUBS then return end
-	if UnitGUID( unit ) == nil then return end
-	if UnitGUID( unit ) == UnitGUID( "player" ) then return end
+	if UnitGUID( name ) == nil then return end -- unknown player.
+	if name == UnitName( "player" ) then return end
 	
 	-- convert data into friendly structure
 	local p = {
-		guid   = UnitGUID( unit );
 		spells = {};
 		subs   = {};
 	}
@@ -132,7 +101,7 @@ function Delleren.Status:UpdatePlayer( unit, data )
 	
 	table.sort( p.subs )
 	
-	self.players[index] = p
+	self.players[name] = p
 	self:Refresh()
 	
 	if data.poll then
@@ -144,23 +113,10 @@ end
 -- Remove entries that do not match their player guid.
 --
 function Delleren.Status:PrunePlayers()
-	if IsInRaid() then
-		for i = 1,40 do
-			local p = self.players[i]
-			if p ~= nil then
-				if p.guid ~= UnitGUID( "raid" .. k ) then
-					self.players[i] = nil
-				end
-			end
-		end
-	else
-		for i = 1,4 do
-			local p = self.players[i]
-			if p ~= nil then
-				if p.guid ~= UnitGUID( "party" .. k ) then
-					self.players[i] = nil
-				end
-			end
+	
+	for name,_ in pairs( self.players ) do
+		if not UnitInParty( name ) then
+			self.players[name] = nil
 		end
 	end
 end
@@ -333,20 +289,38 @@ function Delleren.Status:UpdateSpellCooldown( sp )
 				sp.charges = sp.maxcharges -- redundant
 				sp.time = 0
 			end
+		else
+			break
 		end
+		
 	end
 end
 
 -------------------------------------------------------------------------------
 -- Called when a spell is used by a player.
 --
+-- @param unit  UnitID of player.
 -- @param spell ID of spell used.
--- @param unit UnitID of player.
 --
-function Delleren.Status:OnSpellUsed( spell, unit )
+function Delleren.Status:OnSpellUsed( unit, spell )
 	
-	local p = self:GetPlayerData( unit )
-	if p == nil then return end
+	-- check if we have a raid# unitid if in a raid, or a party# unitid 
+	-- if not in a raid, the same spellcast may trigger multiple events
+	-- with different unitids
+	
+	if ( IsInRaid() and string.find(unit, "raid") 
+	                and not string.find( unit, "target" ))
+					   
+	        or (not IsInRaid() and string.find( unit, "party" )
+                               and not string.find( unit, "target" )) then
+	   
+		unit = UnitName( unit )
+	else
+		return -- not in party.
+	end
+	
+	local p = self.players[unit]
+	if not p then return end
 	
 	-- we have data for this player
 	local sp = p.spells[spell]
@@ -384,8 +358,8 @@ end
 --
 function Delleren.Status:HasSpellReady( unit, list )
 
-	local p = self:GetPlayerData( unit )
-	if p == nil then return nil end
+	local p = self.players[UnitName(unit)]
+	if not p then return nil end
 	
 	for _,spell in ipairs( list ) do
 		local sp = p.spells[spell]
@@ -402,19 +376,11 @@ function Delleren.Status:HasSpellReady( unit, list )
 end
 
 -------------------------------------------------------------------------------
--- Get status data from a unitid
+-- Get status data from a player name.
 --
-function Delleren.Status:GetPlayerData( unit )
-	local index = GetPlayerIndex( unit )
-	if not index then return nil end
+function Delleren.Status:GetPlayerData( name )
 	
-	local p = self.players[index]
+	local p = self.players[name]
 	if p == nil then return nil end
-	
-	if p.guid ~= UnitGUID( unit ) then
-		self.players[index] = nil
-		return nil
-	end
-	
 	return p
 end

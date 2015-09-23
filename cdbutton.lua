@@ -32,6 +32,12 @@ function CDButton:Create( parent )
 			
 	data.frame.cooldown:SetAllPoints()
 	data.frame.cooldown:SetDrawEdge( false )
+	data.frame.icon:SetAllPoints()
+	data.frame.icon:SetTexCoord( 0, 1,0,1 )
+	data.frame:SetNormalTexture( "" )
+	data.frame:SetPushedTexture( "" )
+	data.frame:SetHighlightTexture( "" )
+	
 	
 	local stacks = data.frame:CreateFontString()
 	data.frame.stacks = stacks

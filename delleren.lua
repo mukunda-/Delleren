@@ -117,7 +117,15 @@ function Delleren:OnCombatLogEvent( event, ... )
 		self:OnAuraApplied( spellID, sourceGUID, destGUID )
 		
 	end
+end
 
+-------------------------------------------------------------------------------
+function Delleren:UnitFullName( unit )
+	local n,r = UnitName(unit)
+	if r then
+		return n .. '-' .. r
+	end
+	return n
 end
 
 -------------------------------------------------------------------------------
@@ -285,9 +293,6 @@ end
 function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 	if prefix ~= COMM_PREFIX then return end -- discard unwanted messages
 	
-	sender = self:UnitIDFromName( sender )
-	if sender == nil then return end -- bad message
-	
 	local result, msg, data = self:Deserialize( packed_message )
 	if result == false then return end -- bad message
 	if data.tar and UnitGUID("player") ~= data.tar then
@@ -295,10 +300,10 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		return
 	end
 	
-	if UnitGUID( sender ) == UnitGUID("player") then
-		-- ignore mirrored messages
+	if sender == UnitName( "player" ) then
+		-- ignore mirrored messages, (TODO does this happen?)
 		return
-	end
+	end 
 	
 	if msg == "CHECK" then
 		-- player is checking if we have a cd ready
@@ -344,7 +349,7 @@ end
  
 -------------------------------------------------------------------------------
 local function CrossesRealm( unit )
-	local n,r = UnitName(unit)
+	local n,r = UnitName( unit )
 	return r ~= nil
 end
 
@@ -353,23 +358,23 @@ end
 --
 -- Handles cross-realm compatibility workarounds.
 --
--- @param msg  Message type string
--- @param data Message data block
--- @param dist Distribution type.
--- @param unit WHISPER distribution target.
+-- @param msg    Message type string
+-- @param data   Message data block
+-- @param dist   Distribution type.
+-- @param target WHISPER distribution target name.
 --
-function Delleren:Comm( msg, data, dist, unit )
+function Delleren:Comm( msg, data, dist, target )
 	
-	if unit ~= nil and dist == "WHISPER" and CrossesRealm( unit ) then
+	if target ~= nil and dist == "WHISPER" and CrossesRealm( target ) then
 		dist = "RAID"
-		data.tar = UnitGUID( unit )
+		data.tar = UnitGUID( target )
 	end
 	
 	local packed = self:Serialize( msg, data )
 	
 	if dist == "WHISPER" then
 	
-		self:SendCommMessage( COMM_PREFIX, packed, dist, UnitName(unit) )
+		self:SendCommMessage( COMM_PREFIX, packed, dist, target )
 	else
 		self:SendCommMessage( COMM_PREFIX, packed, dist )
 	end
@@ -378,7 +383,7 @@ end
 -------------------------------------------------------------------------------
 -- Send a READY response.
 --
--- @param target unitID to respond to.
+-- @param target Name of player to respond to.
 -- @param rid    Request ID.
 -- @param id     Spell or item ID that we have ready.
 --
@@ -395,14 +400,14 @@ end
 -------------------------------------------------------------------------------
 -- Decline giving a CD, sending a "NO" response
 --
--- @param target Unit ID of person we are denying.
+-- @param target Name of player we are denying.
 -- @param rid    Request ID.
 --
 function Delleren:DeclineCD( target, rid )
 	local data = { rid = rid }
 	self:Comm( "NO", data, "WHISPER", target )
 end
-  
+
 -------------------------------------------------------------------------------
 -- Frame update handler.
 --
@@ -562,7 +567,7 @@ function Delleren:IteratePlayers()
 			
 			local unit = (raid and "raid" or "party") .. index
 			if UnitExists(unit) and UnitGUID( unit ) ~= player then
-				return unit
+				return self:UnitFullName(unit)
 			end
 		end
 		

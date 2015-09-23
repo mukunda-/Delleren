@@ -23,7 +23,7 @@ Delleren.Query = {
 	spell      = nil;   -- spellid we are asking for
 	item       = nil;   -- true if this is an item request, nil if not
 	list       = {};    -- list of userids that have cds available
-	unit       = nil;   -- unitid of person we want a cd from 
+	unit       = nil;   -- name of person we want a cd from 
 	rid        = 0;     -- request id
 	buff       = false; -- if we are requesting a buff
 }
@@ -75,10 +75,10 @@ function Delleren.Query:Start( list, item, buff )
 	if #instant_list > 0 then
 		-- do an instant request
 		
-		for unit in Delleren:IteratePlayers() do
-			local spell = Delleren.Status:HasSpellReady( unit, instant_list )
+		for name in Delleren:IteratePlayers() do
+			local spell = Delleren.Status:HasSpellReady( name, instant_list )
 			if spell then
-				table.insert( self.list, { unit = unit, id = spell } )
+				table.insert( self.list, { name = name, id = spell } )
 			end
 		end
 	end
@@ -188,7 +188,7 @@ function Delleren.Query:RequestCD( sort )
 	local request_data = self.list[ #self.list ]
 	table.remove( self.list )
 	
-	self.unit      = request_data.unit
+	self.unit      = request_data.name
 	self.requested = true
 	self.time      = GetTime()
 	self.spell     = request_data.id
@@ -234,22 +234,22 @@ end
 -------------------------------------------------------------------------------
 -- Process data received from a READY message.
 --
-function Delleren.Query:HandleReadyMessage( unit, data )
+function Delleren.Query:HandleReadyMessage( name, data )
 	 
 	if not self.active or data.rid ~= self.rid then 
 		return -- invalid or lost message
 	end
 	
-	if Delleren:UnitLongRange( unit ) then
+	if Delleren:UnitLongRange( name ) then
 		
 		table.insert( self.list, 
 			{ 
-				unit = unit; 
+				name = name; 
 				id = data.id; 
 			})
 		
 	else
-		-- out of range or cant find unit id
+		-- out of range or otherwise invalid
 	end
 	
 end

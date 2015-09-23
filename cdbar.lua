@@ -11,7 +11,6 @@ local Delleren = DellerenAddon
 Delleren.CDBar = {
 	frame    = nil;
 	buttons  = {};
-	enabled  = true;
 	unlocked = false;
 }
 
@@ -23,20 +22,8 @@ function Delleren.CDBar:Init()
 end
 
 -------------------------------------------------------------------------------
-function Delleren.CDBar:Enable()
-	self.enabled = true
-	self.frame:Show()
-end
-
--------------------------------------------------------------------------------
-function Delleren.CDBar:Disable()
-	self.enabled = false
-	self.frame:Hide()
-end
-
--------------------------------------------------------------------------------
 function Delleren.CDBar:UpdateButtons( data )
-	if not self.enabled then return end;
+	if not Delleren.Config.db.profile.cdbar.enabled then return end;
 	
 	local relayout = false
 	for k,v in ipairs( data ) do
@@ -89,10 +76,17 @@ function Delleren.CDBar:UpdateLayout()
 							Delleren.Config.db.profile.cdbar.x,
 							Delleren.Config.db.profile.cdbar.y )
 							
-	if Delleren.Config.db.profile.cdbar.mouse_enabled then
+	if Delleren.Config.db.profile.cdbar.enable_mouse then
+		
 		self:EnableMouse()
 	else
 		self:DisableMouse()
+	end
+	
+	if Delleren.Config.db.profile.cdbar.enabled then
+		self.frame:Show()
+	else
+		self.frame:Hide()
 	end
 	
 	Delleren:ReMasque()

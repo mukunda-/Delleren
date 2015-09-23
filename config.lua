@@ -269,8 +269,9 @@ local DB_DEFAULTS = {
 			columns      = 4;
 			padding      = 0;
 			enable_mouse = true;
+			enabled      = true;
 			x            = 0;
-			y            = 0;
+			y            = -100;
 		};
 	};
 }
@@ -411,12 +412,7 @@ end
 -------------------------------------------------------------------------------
 function Delleren.Config:EnableCDBar( value )
 	self.db.profile.cdbar.enabled = value
-	
-	if value then
-		Delleren.CDBar:Enable()
-	else
-		Delleren.CDBar:Disable()
-	end
+	Delleren.CDBar:UpdateLayout()
 end
 
 -------------------------------------------------------------------------------
