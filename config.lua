@@ -185,13 +185,71 @@ local OPTIONS_TABLE = {
 				};
 			};
 		};
+		
+		tracking = {
+			name = "Tracked Spells";
+			type = "group";
+			args = {
+				desc = {
+					order = 1;
+					name  = "Spells that are tracked may be called for with instant queries, and they show up in the CD bar.";
+					type  = "description";
+				};
+				
+				split1 = {
+					order = 2;
+					name  = "Tracked Spells";
+					type  = "header";
+				};
+				
+				split2 = {
+					order = 1000;
+					name  = "";
+					type  = "header";
+				};
+				
+				editorhelp = {
+					order = 1001;
+					name  = "Add or remove which spells are tracked here. Enter spell IDs separated by spaces. Use the handy search tool below to find spell IDs. Good luck if two spells have the same icon and name!";
+					type  = "description";
+				};
+				
+				editor = {
+					order = 1002;
+					name  = "";
+					desc  = "";
+					type  = "input";
+					multiline = 10;
+					width = "full";
+				};
+				
+				split3 = {
+					order = 2000;
+					name = "Spell Search";
+					type = "header";
+				};
+				
+				search_name = {
+					order = 2001;
+					name  = "Spell Name:";
+					type  = "input";
+					
+					current_text = "";
+					
+					get   = function( info ) return info.option.current_text end
+					set   = function( info, val )
+						info.option.current_text = val
+						DoSpellSearch( val )
+					end;
+				};
+			};
+		};
 	};
 }
 
 -------------------------------------------------------------------------------
 local function InsertSoundOption( key, name, desc, order )
-
-
+ 
 	OPTIONS_TABLE.args.sounds.args[key .. "_BREAK"] = {
 		type = "header";
 		name = "";
@@ -222,6 +280,104 @@ end
 InsertSoundOption( "CALL", "Call:", "Sound to play when making a call.", 10 )
 InsertSoundOption( "HELP", "Help:", "Sound to play when being asked for help.", 20 )
 InsertSoundOption( "FAIL", "Fail:", "Sound to play when something goes wrong.", 30 )
+
+-------------------------------------------------------------------------------
+local g_tracked_spell_index = 1
+
+-------------------------------------------------------------------------------
+local function ResetTrackedSpellOptions()
+	for k,v in pairs( OPTIONS_TABLE.args.tracking.args ) do
+		if v.is_spell then
+			OPTIONS_TABLE.args.tracking.args[k] = nil
+		end
+	end
+	g_tracked_spell_index = 1
+end
+
+-------------------------------------------------------------------------------
+local function InsertTrackedSpellOption( spellid )
+	local prefix = "tracked" .. g_tracked_spell_index
+	local order = 10 + g_tracked_spell_index * 10
+	
+	local name,_,icon = GetSpellInfo( spellid )
+	
+	OPTIONS_TABLE.args.tracking.args[prefix .. "desc"] = {
+		order = order;
+		type = "description";
+		name = name;
+		image = icon;
+		imageWidth = 20;
+		imageHeight = 20;
+		fontSize = "large";
+	}
+	--[[
+	OPTIONS_TABLE.args.tracking.args[prefix .. "remove"] = {
+		order = order+1;
+		type = "execute";
+		name = "Remove";
+		desc = "Stop tracking this spell.";
+		width = "half";
+	}
+	
+	OPTIONS_TABLE.args.tracking.args[prefix .. "up"] = {
+		order = order+2;
+		type = "execute";
+		name = "Up";
+		desc = "Adjust position in the CD Bar.";
+		width = "half";
+	}
+	
+	OPTIONS_TABLE.args.tracking.args[prefix .. "down"] = {
+		order = order+3;
+		type = "execute";
+		name = "Down";
+		desc = "Adjust position in the CD Bar.";
+		width = "half";
+	}
+	--]]
+	
+	g_tracked_spell_index = g_tracked_spell_index + 1
+end
+
+-------------------------------------------------------------------------------
+local function RebuildTrackedSpellOptions()
+	ResetTrackedSpellOptions()
+	
+	for k,v in ipairs( Delleren.Config.db.profile.tracking.list ) do
+		InsertTrackedSpellOption( v.spell )
+	end
+end
+
+-------------------------------------------------------------------------------
+local g_spell_search_index = 1
+
+-------------------------------------------------------------------------------
+local function ResetSpellSearch()
+	g_spell_search_index = 1
+end
+
+-------------------------------------------------------------------------------
+local function AddSpellSearchResult( spellid )
+	local prefix = "search_result" .. g_spell_search_index
+	local order = 2005 + g_spell_search_index * 10
+	
+	local name,_,icon = GetSpellInfo( spellid )
+	
+	OPTIONS_TABLE.args.tracking.args[prefix .. "desc"] = {
+		order = order;
+		type  = "description";
+		name  = spellid;
+		image = icon;
+		imageWidth  = 24;
+		imageHeight = 24;
+		fontSize = "large";
+	}
+end
+
+-------------------------------------------------------------------------------
+local fucntion DoSpellSearch( name )
+	ResetSpellSearch
+end
 
 Delleren.Config.options = OPTIONS_TABLE
  
@@ -273,6 +429,15 @@ local DB_DEFAULTS = {
 			x            = 0;
 			y            = -100;
 		};
+		
+		tracking = {
+			list = { 
+				{spell=6940};
+				{spell=33206};
+				{spell=102342};
+				{spell=114030};
+			}
+		};
 	};
 }
 
@@ -304,8 +469,11 @@ function Delleren.Config:Init()
 	
 	self.options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable( self.db )
 	
+	RebuildTrackedSpellOptions()
 	
 	AceConfig:RegisterOptionsTable( "Delleren", self.options )
+	
+	
 end
 
 -------------------------------------------------------------------------------

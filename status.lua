@@ -37,26 +37,20 @@ Delleren.Status = {
 	
 	-- spells that we have subscribed to
 	mysubs   = {};
+	mysubmap = {};
 	
 	-- program options
 	MAX_SUBS = 16;
 	
-	refreshing = false;
+	refresh = {
+		queued = false; -- refresh operation is queued
+		send   = false; -- send status message after
+		subs   = false; -- rebuild sub data
+	};
+	
 	sending    = false;
 	poll       = false;
 }
---[[
--------------------------------------------------------------------------------
-local function GetPlayerIndex( unit )
-	local a = UnitInRaid( unit )
-	if a ~= nil then return a end
-	if string.find( unit, "party" ) then
-		
-		return tonumber( string.sub( unit, 6 ) )
-	end
-	
-	return nil
-end]]
 
 -------------------------------------------------------------------------------
 -- Record the status of a player.
@@ -70,13 +64,14 @@ function Delleren.Status:UpdatePlayer( name, data )
 	if data.cds == nil then data.cds = {} end
 	if data.sub == nil then data.sub = {} end
 	if #data.sub > self.MAX_SUBS then return end
-	if UnitGUID( name ) == nil then return end -- unknown player.
+	if not UnitInParty( name ) then return end -- who is this?!
 	if name == UnitName( "player" ) then return end
 	
 	-- convert data into friendly structure
 	local p = {
 		spells = {};
 		subs   = {};
+		time   = GetTime();
 	}
 	
 	for i = 1,#data.cds,5 do
@@ -102,15 +97,30 @@ function Delleren.Status:UpdatePlayer( name, data )
 	table.sort( p.subs )
 	
 	self.players[name] = p
-	self:Refresh()
+	self:Refresh( true, data.poll )
+end
+
+-------------------------------------------------------------------------------
+-- Queue a status refresh.
+--
+-- @param subs Rebuild subscription data.
+-- @param send Force send a status message afterwards.
+--
+function Delleren.Status:Refresh( subs, send )
+	if subs then self.refresh.subs = true end
+	if send then self.refresh.send = true end
 	
-	if data.poll then
-		self:Send()
+	if not self.refresh.queued then
+		self.refresh.queued = true
+		Delleren:ScheduleTimer( 
+			function() 
+		        Delleren.Status:DoRefresh() 
+			end, 1 )
 	end
 end
 
 -------------------------------------------------------------------------------
--- Remove entries that do not match their player guid.
+-- Remove entries in the status table that are no longer in the party.
 --
 function Delleren.Status:PrunePlayers()
 	
@@ -122,55 +132,58 @@ function Delleren.Status:PrunePlayers()
 end
 
 -------------------------------------------------------------------------------
--- Refresh the status data after receiving an update from a player.
+-- Returns a table of all spells subbed by the raid.
 --
-function Delleren.Status:Refresh()
+function Delleren.Status:MergeSubLists()
+	-- merge all sublists from each player into one sub list
 	local submap = {}
+	local subs   = {}
 	
-	self:PrunePlayers()
-	
-	for _,p in pairs( self.players ) do
-		
-		for k2,v2 in ipairs( p.subs ) do
+	for _,p in pairs( self.players ) do 
+		for _,v2 in pairs( p.subs ) do
 			submap[v2] = true
-		end
-		
+		end 
 	end
 	
-	local subs = {}
-	
-	for _,spell in pairs( submap ) do
+	for spell,_ in pairs( submap ) do
 		table.insert( subs, spell )
 	end
 	
 	-- needs to be sorted for certain optimizations
 	table.sort( subs )
-	self.subs = subs
 	
-	local mysubs = {}
-	local mysubmap = {}
+	return subs, submap
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:DoRefresh()
+	self:PrunePlayers()
 	
-	-- set to true if new (known) subs were added to our list
-	local newsubs = false
+	self.subs, self.submap = self:MergeSubLists()
+	
+	local fsubs   = {}
+	local fsubmap = {}
+	
+	local newsubs = false -- flag if new (known) subs were added to our list
 	
 	-- build the new filtered sub list and map
-	-- if there are new spells that werent there before, set the newsubs flag
-	for _,spell in ipairs( subs ) do
+	-- if there are new spells that weren't there before, set the newsubs flag
+	for _,spell in ipairs( self.subs ) do
 		if IsSpellKnown( spell ) then
-			if not self.fsubsmap[spell] then
+			if not self.fsubmap[spell] then
 				newsubs = true
 			end
 				
-			table.insert( mysubs, spell )
-			mysubmap[spell] = true
+			table.insert( fsubs, spell )
+			fsubmap[spell] = true
 		end
 	end
 	
-	self.fsubs   = mysubs
-	self.fsubmap = mysubmap
+	self.fsubs   = fsubs
+	self.fsubmap = fsubmap
 	
-	-- if there are new subs, send a status response.
-	if newsubs then
+	-- if there are new subs or a poll was requested, send a status response.
+	if newsubs or self.refresh.send then
 		self:Send()
 	end
 end
@@ -374,13 +387,4 @@ function Delleren.Status:HasSpellReady( unit, list )
 	-- no spells available
 	return nil
 end
-
--------------------------------------------------------------------------------
--- Get status data from a player name.
---
-function Delleren.Status:GetPlayerData( name )
-	
-	local p = self.players[name]
-	if p == nil then return nil end
-	return p
-end
+ 
