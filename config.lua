@@ -22,6 +22,72 @@ local SOUND_CHANNELS = {
 -------------------------------------------------------------------------------
 Delleren.Config = {
 	font_list = nil; 
+	spell_search_index = 0;
+	spell_search_text  = "";
+	
+	tracked_spell_data = { 
+		{ spell = 6940   };
+		{ spell = 33206  };
+		{ spell = 102342 };
+		{ spell = 114030 };
+	};
+	
+	config_tracked_spell_index = 1;
+}
+
+-------------------------------------------------------------------------------
+local DB_DEFAULTS = {
+
+	profile = {
+	
+		locked = false;
+		
+		indicator = {
+			size     = 64;
+			fontsize = 16;
+			font     = "Arial Narrow";
+			icon_x   = 0;
+			icon_y   = 0;
+		};
+		
+		sound = {
+		
+			channel = "Master";
+		
+			sounds = {
+				
+				CALL = {
+					name    = "Delleren-Call";
+					file    = nil; 
+					enabled = true;
+				};
+				HELP = {
+					name    = "Delleren-Help";
+					file    = nil; 
+					enabled = true;
+				};
+				FAIL = {
+					name    = "Delleren-Fail";
+					file    = nil; 
+					enabled = true
+				};
+			};
+		};
+		
+		cdbar = {
+			size         = 48;
+			columns      = 4;
+			padding      = 0;
+			enable_mouse = true;
+			enabled      = true;
+			x            = 0;
+			y            = -100;
+		};
+		
+		tracking = {
+			list = nil; -- filled in at init
+		};
+	};
 }
 
 -------------------------------------------------------------------------------
@@ -204,7 +270,7 @@ local OPTIONS_TABLE = {
 				
 				split2 = {
 					order = 1000;
-					name  = "";
+					name  = "Edit";
 					type  = "header";
 				};
 				
@@ -221,6 +287,11 @@ local OPTIONS_TABLE = {
 					type  = "input";
 					multiline = 10;
 					width = "full";
+					get   = function( info ) return Delleren.Config.tracking_editor_text end;
+					set   = function( info, val )
+						Delleren.Config:TrackingEditorChanged( val )
+					
+					end;
 				};
 				
 				split3 = {
@@ -233,19 +304,18 @@ local OPTIONS_TABLE = {
 					order = 2001;
 					name  = "Spell Name:";
 					type  = "input";
-					
-					current_text = "";
-					
-					get   = function( info ) return info.option.current_text end
+					  
+					get   = function( info ) return Delleren.Config.spell_search_text end;
 					set   = function( info, val )
-						info.option.current_text = val
-						DoSpellSearch( val )
+						Delleren.Config:DoSpellSearch( val )
 					end;
 				};
 			};
 		};
 	};
 }
+
+Delleren.Config.options = OPTIONS_TABLE
 
 -------------------------------------------------------------------------------
 local function InsertSoundOption( key, name, desc, order )
@@ -282,22 +352,19 @@ InsertSoundOption( "HELP", "Help:", "Sound to play when being asked for help.", 
 InsertSoundOption( "FAIL", "Fail:", "Sound to play when something goes wrong.", 30 )
 
 -------------------------------------------------------------------------------
-local g_tracked_spell_index = 1
-
--------------------------------------------------------------------------------
-local function ResetTrackedSpellOptions()
+function Delleren.Config:ResetTrackedSpellOptions()
 	for k,v in pairs( OPTIONS_TABLE.args.tracking.args ) do
-		if v.is_spell then
+		if string.find( k, "trackedspell" ) then
 			OPTIONS_TABLE.args.tracking.args[k] = nil
 		end
 	end
-	g_tracked_spell_index = 1
+	self.config_tracked_spell_index = 1
 end
 
 -------------------------------------------------------------------------------
-local function InsertTrackedSpellOption( spellid )
-	local prefix = "tracked" .. g_tracked_spell_index
-	local order = 10 + g_tracked_spell_index * 10
+function Delleren.Config:InsertTrackedSpellOption( spellid )
+	local prefix = "trackedspell" .. self.config_tracked_spell_index
+	local order = 10 + self.config_tracked_spell_index * 10
 	
 	local name,_,icon = GetSpellInfo( spellid )
 	
@@ -308,141 +375,92 @@ local function InsertTrackedSpellOption( spellid )
 		image = icon;
 		imageWidth = 20;
 		imageHeight = 20;
-		fontSize = "large";
-	}
-	--[[
-	OPTIONS_TABLE.args.tracking.args[prefix .. "remove"] = {
-		order = order+1;
-		type = "execute";
-		name = "Remove";
-		desc = "Stop tracking this spell.";
-		width = "half";
-	}
+		fontSize = "large"; 
+	} 
 	
-	OPTIONS_TABLE.args.tracking.args[prefix .. "up"] = {
-		order = order+2;
-		type = "execute";
-		name = "Up";
-		desc = "Adjust position in the CD Bar.";
-		width = "half";
-	}
-	
-	OPTIONS_TABLE.args.tracking.args[prefix .. "down"] = {
-		order = order+3;
-		type = "execute";
-		name = "Down";
-		desc = "Adjust position in the CD Bar.";
-		width = "half";
-	}
-	--]]
-	
-	g_tracked_spell_index = g_tracked_spell_index + 1
+	self.config_tracked_spell_index = self.config_tracked_spell_index + 1
 end
 
 -------------------------------------------------------------------------------
-local function RebuildTrackedSpellOptions()
-	ResetTrackedSpellOptions()
+function Delleren.Config:RebuildTrackedSpellOptions()
+	self:ResetTrackedSpellOptions()
 	
-	for k,v in ipairs( Delleren.Config.db.profile.tracking.list ) do
-		InsertTrackedSpellOption( v.spell )
+	for k,v in ipairs( self.tracked_spell_data ) do
+		self:InsertTrackedSpellOption( v.spell )
 	end
 end
-
+ 
 -------------------------------------------------------------------------------
-local g_spell_search_index = 1
-
--------------------------------------------------------------------------------
-local function ResetSpellSearch()
-	g_spell_search_index = 1
+function Delleren.Config:ResetSpellSearch()
+	for k,v in pairs( self.options.args.tracking.args ) do
+		if string.find( k, "search_result" ) then
+			self.options.args.tracking.args[k] = nil
+		end
+	end
+	
+	self.spell_search_index = 0
 end
 
 -------------------------------------------------------------------------------
-local function AddSpellSearchResult( spellid )
-	local prefix = "search_result" .. g_spell_search_index
-	local order = 2005 + g_spell_search_index * 10
+function Delleren.Config:AddSpellSearchResult( spellid )
+	local prefix = "search_result" .. (self.spell_search_index+1)
+	local order = 2005 + self.spell_search_index * 10
 	
 	local name,_,icon = GetSpellInfo( spellid )
 	
-	OPTIONS_TABLE.args.tracking.args[prefix .. "desc"] = {
-		order = order;
-		type  = "description";
-		name  = spellid;
-		image = icon;
-		imageWidth  = 24;
-		imageHeight = 24;
-		fontSize = "large";
+	self.options.args.tracking.args[prefix] = {
+		order        = order;
+		type         = "description";
+		name         = spellid;
+		image        = icon;
+		imageWidth   = 24;
+		imageHeight  = 24; 
+		fontSize     = "medium"; 
 	}
-end
-
--------------------------------------------------------------------------------
-local fucntion DoSpellSearch( name )
-	ResetSpellSearch
-end
-
-Delleren.Config.options = OPTIONS_TABLE
- 
--------------------------------------------------------------------------------
-local DB_DEFAULTS = {
-
-	profile = {
 	
-		locked = false;
+	self.spell_search_index = self.spell_search_index + 1
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Config:DoSpellSearch( name )
+	self.spell_search_text = name
+	
+	self:ResetSpellSearch()
+	
+	name = string.lower(name)
+	
+	for spellid = 1,200000 do
+		local name2 = GetSpellInfo( spellid )
 		
-		indicator = {
-			size     = 64;
-			fontsize = 16;
-			font     = "Arial Narrow";
-			icon_x   = 0;
-			icon_y   = 0;
-		};
-		
-		sound = {
-		
-			channel = "Master";
-		
-			sounds = {
-				
-				CALL = {
-					name    = "Delleren-Call";
-					file    = nil; 
-					enabled = true;
-				};
-				HELP = {
-					name    = "Delleren-Help";
-					file    = nil; 
-					enabled = true;
-				};
-				FAIL = {
-					name    = "Delleren-Fail";
-					file    = nil; 
-					enabled = true
-				};
-			};
-		};
-		
-		cdbar = {
-			size         = 48;
-			columns      = 4;
-			padding      = 0;
-			enable_mouse = true;
-			enabled      = true;
-			x            = 0;
-			y            = -100;
-		};
-		
-		tracking = {
-			list = { 
-				{spell=6940};
-				{spell=33206};
-				{spell=102342};
-				{spell=114030};
-			}
-		};
-	};
-}
+		if name2 ~= nil then
+			if name == string.lower( name2 ) then
+				self:AddSpellSearchResult( spellid )
+				if self.spell_search_index >= 20 then break end
+			end
+		end
+	end
+	
+	local order = 2005 + self.spell_search_index * 10
+	
+	OPTIONS_TABLE.args.tracking.args["search_result_stats"] = {
+		order        = order;
+		type         = "description";
+		desc         = "test";
+		name         = self.spell_search_index .. " result" .. ( self.spell_search_index == 1 and "." or "s." );
+		image        = icon;
+		imageWidth   = 24;
+		imageHeight  = 24;
+	}
+	
+	LibStub("AceConfigRegistry-3.0"):NotifyChange("Delleren")
+end
 
 -------------------------------------------------------------------------------
 function Delleren.Config:CreateDB() 
+
+	DB_DEFAULTS.profile.tracking.list = 
+			Delleren:Serialize( self.tracked_spell_data );
+
 	self.db = LibStub( "AceDB-3.0" ):New( 
 					"DellerenAddonSaved", DB_DEFAULTS, true )
 	
@@ -456,7 +474,7 @@ function Delleren.Config:Init()
 	if self.init then return end
 	self.init = true
 	
-	self.font_list  = SharedMedia:List( "font" )
+	self.font_list  = SharedMedia:List( "font"  )
 	self.sound_list = SharedMedia:List( "sound" )
 	
 	self.options.args.indicator.args.fontface.values = self.font_list
@@ -469,7 +487,8 @@ function Delleren.Config:Init()
 	
 	self.options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable( self.db )
 	
-	RebuildTrackedSpellOptions()
+	self:RebuildTrackedSpellOptions()
+	self:ResetTrackingEditorText()
 	
 	AceConfig:RegisterOptionsTable( "Delleren", self.options )
 	
@@ -503,11 +522,20 @@ function Delleren.Config:Apply()
 	Delleren.Indicator:SetFont( SharedMedia:Fetch( "font", data.indicator.font ))
 	Delleren.Indicator:SetPosition( data.indicator.x, data.indicator.y )
 	
+	Delleren.Status:UpdateTrackingConfig( true )
+	
 	self:CacheSoundPaths()
 	
 	Delleren.CDBar:UpdateLayout()
 	
-	if not data.locked then
+	do
+		local success,data = Delleren:Deserialize( data.tracking.list )
+		if success then
+			self.tracked_spell_data = data
+		end
+	end
+	
+	if not data.locked then 
 		Delleren:UnlockFrames()
 	end
 end
@@ -593,3 +621,36 @@ function Delleren.Config:EnableCDBarMouse( value )
 		Delleren.CDBar:DisableMouse()
 	end
 end
+
+-------------------------------------------------------------------------------
+function Delleren.Config:ResetTrackingEditorText()
+	self.tracking_editor_text = ""
+	for k,v in ipairs( self.tracked_spell_data ) do
+		self.tracking_editor_text = 
+			self.tracking_editor_text .. v.spell .. "\n"
+	end
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Config:TrackingEditorChanged( val )
+	self.tracking_editor_text = val
+	
+	local list = {}
+	
+	for word in string.gmatch( val, "%S+" ) do
+		local spellid = tonumber(word)
+		if spellid ~= nil and GetSpellInfo( spellid ) then
+			table.insert( list, {spell=spellid} )
+			
+			if #list >= Delleren.Status.MAX_SUBS then break end
+		end
+	end
+	
+	self.db.profile.tracking.list = Delleren:Serialize(list)
+	self.tracked_spell_data = list
+	
+	self:RebuildTrackedSpellOptions()
+	
+	Delleren.Status:UpdateTrackingConfig()
+end
+

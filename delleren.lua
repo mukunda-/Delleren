@@ -40,9 +40,31 @@ function Delleren:OnEnable()
 	
 	self:RegisterEvent( "UNIT_SPELLCAST_SUCCEEDED", 
 						"OnUnitSpellcastSucceeded" )
+	self:RegisterEvent( "GROUP_JOINED", "OnGroupJoined" )
+	
+	self:RegisterEvent( "PLAYER_TALENT_UPDATE", "OnTalentsChanged" )
+	self:RegisterEvent( "GLYPH_ADDED", "OnTalentsChanged" )
 	
 	self:RegisterComm( "DELLEREN" )
 	
+	if IsInGroup() then
+		-- exchange status with party
+		
+		-- add a longer delay to let shit load
+		self:ScheduleTimer( function() Delleren.Status:Send(true) end, 10 )
+		
+	end
+end
+
+-------------------------------------------------------------------------------
+function Delleren:OnGroupJoined()
+
+	self.Status:NewGroup()
+end
+
+-------------------------------------------------------------------------------
+function Delleren:OnTalentsChanged()
+	self.Status:Send()
 end
 
 -------------------------------------------------------------------------------
@@ -177,6 +199,7 @@ end
 -------------------------------------------------------------------------------
 -- Returns a raid or party unit id from a name or unitid given.
 --
+--[[
 function Delleren:UnitIDFromName( name )
 	-- TODO check what format name is in!
 
@@ -191,7 +214,7 @@ function Delleren:UnitIDFromName( name )
 	end
 	
 	return nil
-end
+end]]
 
 -------------------------------------------------------------------------------
 -- Returns the squared range to a friendly unit.
@@ -341,9 +364,7 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		self.query.requested = false
 		
 	elseif msg == "STATUS" then
-		RecordStatus( sender, data )
-	elseif msg == "POLL" then
-		SendStatus()
+		self.Status:UpdatePlayer( sender, data )
 	end
 end
  

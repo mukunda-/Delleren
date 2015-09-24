@@ -71,7 +71,7 @@ STATUS (RAID) - Update raid with status
 		spellid, duration, charges, max_charges, time 
 		 
 		spellid     = spell id 
-		duration    = the duration of the spell's cooldown
+		duration    = the duration of the spell's cooldown (milliseconds)
 		charges     = charges we have ready
 		max_charges = the maximum amount of charges we can have
 		time        = time until another charge becomes available (add 1 to charges when time passes this)
@@ -90,15 +90,14 @@ status updates when a single player in a party includes it in their "sub" list
 in their STATUS messages.
 
 STATUS is sent when:
-a player joins a party (sent by the joining player, with poll=true to refresh everyone else)
-a player reloads their ui (sent by the reloaded player, with poll=true to refresh everyone else)
-a player's subscribed spell list changes
+a player joins a party (sent by the joining player, with poll=true to refresh everyone else)		event=GROUP_JOINED
+a player reloads their ui (sent by the reloaded player, with poll=true to refresh everyone else)	run in OnEnable
+a player's subscribed spell list changes								
    this may cause a sequence of status messages, for example:
      player2 sends status, nothing changes
      player1 sends status, player2 receives a spellid that is currently not "subscribed" to
      player2 sends another status with the info on the new spellid, that is, if they
       know the spell
-when a raid encounter starts
 when talents or spec is changed  
 
 when a status update is triggered by another player, wait 5 seconds before issuing the status message

@@ -50,6 +50,8 @@ Delleren.Status = {
 	
 	sending    = false;
 	poll       = false;
+	
+	reloaded   = true;
 }
 
 -------------------------------------------------------------------------------
@@ -59,6 +61,13 @@ Delleren.Status = {
 -- @param data The data of the STATUS comm message.
 --
 function Delleren.Status:UpdatePlayer( name, data )
+
+	print( "STATUS", name, #data.cds, #data.sub, data.poll )
+	for i = 1,#data.cds,5 do
+		print( data.cds[i], data.cds[i+1], data.cds[i+2], data.cds[i+3], data.cds[i+4] )
+	end
+	
+	print( "SUBS", data.sub[1], data.sub[2], data.sub[3], data.sub[4], data.sub[5], data.sub[6], data.sub[7] )
 	
 	-- filter bad or potentially malicious data
 	if data.cds == nil then data.cds = {} end
@@ -83,7 +92,7 @@ function Delleren.Status:UpdatePlayer( name, data )
 		
 		-- and store
 		p.spells[ spellid ] = {
-			duration   = duration;
+			duration   = duration / 1000;
 			charges    = charges;
 			maxcharges = maxcharges;
 			time       = time;
@@ -186,6 +195,10 @@ function Delleren.Status:DoRefresh()
 	if newsubs or self.refresh.send then
 		self:Send()
 	end
+	
+	self.refresh.queued = false
+	self.refresh.subs   = false
+	self.refresh.send   = false
 end
 
 -------------------------------------------------------------------------------
@@ -202,14 +215,14 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:SendStatusDelayed()
-	self.Status.SendDelayed()
+	self.Status:SendDelayed()
 end
 
 -------------------------------------------------------------------------------
 -- Actual sending function, delayed.
 --
 function Delleren.Status:SendDelayed()
-	
+	print( "DEBUG: sending status" )
 	-- build status message
 	local data = {}
 	
@@ -241,9 +254,9 @@ function Delleren.Status:SendDelayed()
 					sp_charges    = charges
 					sp_maxcharges = maxcharges
 					if charges ~= maxcharges then
-						v5 = start + duration
+						sp_time = start + duration
 					else
-						v5 = 0
+						sp_time = 0
 					end
 				else
 					-- normal spell
@@ -280,6 +293,9 @@ function Delleren.Status:SendDelayed()
 	end
 	
 	Delleren:Comm( "STATUS", data, "RAID" )
+	
+	self.sending = false
+	self.poll    = false
 end
 
 -------------------------------------------------------------------------------
@@ -388,3 +404,27 @@ function Delleren.Status:HasSpellReady( unit, list )
 	return nil
 end
  
+-------------------------------------------------------------------------------
+function Delleren.Status:NewGroup()
+
+	-- discard old player data
+	self.players = {}
+	
+	-- send status to everyone and request theirs
+	self:Send( true )
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:UpdateTrackingConfig( dontsend )
+	self.mysubs = {}
+	self.mysubmap = {}
+	
+	for k,v in ipairs( Delleren.Config.tracked_spell_data ) do
+		table.insert( self.mysubs, v.spell )
+		self.mysubmap[v.spell] = true
+	end
+	
+	if not dontsend then
+		self:Send()
+	end
+end
