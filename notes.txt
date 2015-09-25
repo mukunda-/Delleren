@@ -71,7 +71,7 @@ STATUS (RAID) - Update raid with status
 		spellid, duration, charges, max_charges, time 
 		 
 		spellid     = spell id 
-		duration    = the duration of the spell's cooldown (milliseconds)
+		duration    = the duration of the spell's cooldown (seconds)
 		charges     = charges we have ready
 		max_charges = the maximum amount of charges we can have
 		time        = time until another charge becomes available (add 1 to charges when time passes this)
@@ -82,6 +82,11 @@ STATUS (RAID) - Update raid with status
 		-- list of spell IDs that we are interested in tracking (subscribing to), this is hard limited to 16 ids
 	}
 	poll = true if we want everyone to send a status message
+}
+
+PING (RAID)
+{
+	-- an empty message that refreshes a player's ping time
 }
 
 spells that are "subscribed" allow players to access them faster by directly 

@@ -17,8 +17,7 @@ Delleren.QueryList = {
 	frame     = nil;
 	highlight = nil;
 	highlight_entry = nil;
-	entries   = {};
-	cancel    = nil;
+	entries   = {}; 
 	x         = 0;
 	y         = 0;
 }
@@ -33,48 +32,57 @@ function Delleren.QueryList:Init()
 	self.frame.bg:SetTexture( 0,0,0 )
 	self.frame.bg:SetAllPoints()
 	self.frame:EnableMouse( true )
-	
---	self.frame.highlight = self.frame:CreateTexture()
---	self.frame.highlight:SetTexture( 1, 1, 1, 0.25 )
---	self.frame.highlight:Hide()
-	
+	 
 	self.x, self.y = 1920, 1080 
 	self.frame:SetPoint( "TOPLEFT", nil, "TOPLEFT", self.x, -self.y )
 	self.frame:Show()
 	
-	self.frame:SetScript( "OnLeave", 
-			function() 
-				Delleren.QueryList:ClearEntryHighlight() 
-			end )
 	
-	self:UpdateList( {
+	--[[self:UpdateList( {
 		{ name = "Delleren",  id = 115072 };
 		{ name = "Llanna",    id = 121253 };
 		{ name = "Poopsauce", id = 123986 };
-	})
+	})]]
 end
 
 -------------------------------------------------------------------------------
-function Delleren.QueryList:UpdateList( list, items )
+local function GetRealCursorPosition()
+	local x, y = GetCursorPosition()
+	x = x / (768 * GetMonitorAspectRatio())
+	y = y / 768
+	x = x * UIParent:GetWidth()
+	y = y * UIParent:GetHeight()
+	y = UIParent:GetHeight() - y
+	
+	return x, y
+end
+
+-------------------------------------------------------------------------------
+function Delleren.QueryList:ShowList( list, items, position )
+
+	if position then
+		self.x, self.y = GetRealCursorPosition()
+	end
+
 	local count = 0
+	count = count + 1
+	self:ShowEntry( count, "Cancel", 
+		{ tex = "Interface\\ICONS\\trade_engineering"; 
+		  action = { type = "CANCEL" };
+		})
+	
 	for k,v in ipairs( list ) do
 		count = count + 1
 		
-		if self.entries[count] == nil then
-			self.entries[count] = self:CreateNewEntry( count )
-		end
-		self.entries[count].text:SetText( v.name )
+		local action = { type = "CALL", index = k }
 		
 		if not items then
 			
-			self:ShowEntry( count, v.name, { spell = v.id } )
+			self:ShowEntry( count, v.name, { spell = v.id, action = action } )
 		else
-			self:ShowEntry( count, v.name, { item = v.id } )
+			self:ShowEntry( count, v.name, { item = v.id, action = action } )
 		end
 	end
-	
-	count = count + 1
-	self:ShowEntry( count, "Cancel", { tex = "Interface\\ICONS\\trade_engineering" } )
 	
 	local frameheight = FRAMEPADDING*2
 	                     + count * (ENTRYHEIGHT+ENTRYSPACING) - ENTRYSPACING
@@ -89,6 +97,8 @@ function Delleren.QueryList:UpdateList( list, items )
 	for i = count, #self.entries do
 		self:HideEntry( i )
 	end 
+	
+	self.frame:Show()
 end
 
 -------------------------------------------------------------------------------
@@ -100,6 +110,7 @@ function Delleren.QueryList:ShowEntry( index, text, options )
 		frame = self.entries[index]
 	end
 		
+	frame.action = options.action
 	frame.text:SetText( text )
 	
 	if options.tex then
@@ -132,7 +143,7 @@ end
 -------------------------------------------------------------------------------
 function Delleren.QueryList:CreateNewEntry( index )
 	
-	local frame = CreateFrame( "Frame", nil, self.frame )
+	local frame = CreateFrame( "Button", nil, self.frame )
 	
 	frame.entry_index = index
 	
@@ -141,6 +152,11 @@ function Delleren.QueryList:CreateNewEntry( index )
 	frame:SetPoint( "BOTTOMRIGHT", self.frame, "TOPRIGHT", 
 					  -FRAMEPADDING, -(top + ENTRYHEIGHT) )
 	
+	frame.highlight = frame:CreateTexture( nil, "BACKGROUND" )
+	frame.highlight:SetPoint( "TOPLEFT", -FRAMEPADDING, FRAMEPADDING )
+	frame.highlight:SetPoint( "BOTTOMRIGHT", FRAMEPADDING, -FRAMEPADDING )
+	frame.highlight:SetTexture( 1, 1, 1, 0.25 )
+	frame.highlight:Hide()
 	
 	frame.icon = frame:CreateTexture()
 	frame.icon:SetSize( ENTRYHEIGHT, ENTRYHEIGHT )
@@ -152,65 +168,50 @@ function Delleren.QueryList:CreateNewEntry( index )
 	frame.text:SetPoint( "TOPLEFT", 20, 0 )
 	frame.text:SetPoint( "RIGHT", 0 )
 	frame.text:SetHeight( ENTRYHEIGHT )
-	
-	frame.highlight = frame:CreateTexture()
-	frame.highlight:SetPoint( "TOPLEFT", -FRAMEPADDING, FRAMEPADDING )
-	frame.highlight:SetPoint( "BOTTOMRIGHT", FRAMEPADDING, -FRAMEPADDING )
-	frame.highlight:SetTexture( 1, 1, 1, 0.25 )
-	
+	 
 	frame:SetScript( "OnEnter", Delleren.QueryList.EntryFrameEntered )
 	frame:SetScript( "OnLeave", Delleren.QueryList.EntryFrameLeft )
 	frame:SetScript( "OnMouseDown", Delleren.QueryList.EntryFrameDown )
 	frame:SetScript( "OnMouseUp", Delleren.QueryList.EntryFrameUp )
-	frame:SetScript( "OnClicked", Delleren.QueryList.EntryFrameClicked )
+	frame:SetScript( "OnClick", Delleren.QueryList.EntryFrameClicked )
 		
 	return frame
 end
 
 -------------------------------------------------------------------------------
-function Delleren.QueryList.EntryFrameEntered( self )
-	Delleren.QueryList:HighlightEntry( self.entry_index )
-	self.highlight:Show()
+function Delleren.QueryList:Hide()
+	self.frame:Hide()
 end
 
 -------------------------------------------------------------------------------
-function Delleren.QueryList.EntryFrameLeft( self )
-	Delleren.QueryList:ClearEntryHighlight( self.entry_index )
-	self.highlight:Hide()
+function Delleren.QueryList.EntryFrameEntered( frame )
+	frame.highlight:Show()
 end
 
 -------------------------------------------------------------------------------
-function Delleren.QueryList.EntryFrameDown( self )
-	Delleren.QueryList:HighlightEntry( self.entry_index )
-	self.highlight:SetTexture( 1, 1, 1, 0.4 )
+function Delleren.QueryList.EntryFrameLeft( frame )
+	frame.highlight:Hide()
 end
 
 -------------------------------------------------------------------------------
-function Delleren.QueryList.EntryFrameUp( self )	
-	self.highlight:SetTexture( 1, 1, 1, 0.25 )
+function Delleren.QueryList.EntryFrameDown( frame )
+	frame.highlight:SetTexture( 1, 1, 1, 0.4 )
 end
 
 -------------------------------------------------------------------------------
-function Delleren.QueryList:HighlightEntry( index )
-
-	self.highlight_entry = index
-	
-	local top = (index-1) * (ENTRYHEIGHT + ENTRYSPACING)
-	self.frame.highlight:SetPoint( "TOPLEFT", 0, -top )
-	self.frame.highlight:SetPoint( "BOTTOMRIGHT", self.frame, "TOPRIGHT", 
-								   0, -(top + ENTRYHEIGHT+FRAMEPADDING*2) )
-	self.frame.highlight:Show()
+function Delleren.QueryList.EntryFrameUp( frame )	
+	frame.highlight:SetTexture( 1, 1, 1, 0.25 )
 end
-
+ 
 -------------------------------------------------------------------------------
-function Delleren.QueryList:ClearEntryHighlight( index )
-
-	if self.highlight_entry == index then
-		self.highlight_entry = nil
-		self.frame.highlight:Hide()
+function Delleren.QueryList.EntryFrameClicked( frame )
+	if frame.action then
+		if frame.action.type == "CANCEL" then
+			Delleren.Query:Fail()
+			Delleren.QueryList.frame:Hide()
+		elseif frame.action.type == "CALL" then
+			Delleren.Query:RequestManual( frame.action.index )
+			Delleren.QueryList.frame:Hide()
+		end
 	end
-end
-
-function Delleren.QueryList:OnUpdate()
-	
 end

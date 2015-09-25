@@ -54,13 +54,20 @@ function Delleren:OnEnable()
 		-- exchange status with party
 		
 		-- add a longer delay to let shit load
-		self:ScheduleTimer( function() Delleren.Status:Send(true) end, 8 )
+		self:ScheduleTimer( function() Delleren.Status:Send(true) end, 15 )
 		--self:ScheduleTimer( function() Delleren.Status:Send(true) end, 16 )
 		
 	end
 	
 	self.update_dummy_frame:SetScript( "OnUpdate", 
 							  function() Delleren:OnFrame() end )
+							  
+	self:ScheduleRepeatingTimer( "SendPing", 120 )
+end
+
+-------------------------------------------------------------------------------
+function Delleren:SendPing()
+	self:Comm( "PING", {}, "RAID" )
 end
 
 -------------------------------------------------------------------------------
@@ -211,28 +218,7 @@ function Delleren:LockFrames()
 	
 	LibStub("AceConfigRegistry-3.0"):NotifyChange("Delleren")
 end
-
-
--------------------------------------------------------------------------------
--- Returns a raid or party unit id from a name or unitid given.
---
---[[
-function Delleren:UnitIDFromName( name )
-	-- TODO check what format name is in!
-
-	local r = UnitInRaid( name )
-	if r ~= nil then return "raid" .. r end
-	
-	for i = 1,4 do
-		local n  = UnitName( "party" .. i )
-		if n ~= nil then
-			if n == name then return "party" .. i end
-		end
-	end
-	
-	return nil
-end]]
-
+ 
 -------------------------------------------------------------------------------
 -- Returns the squared range to a friendly unit.
 --
@@ -382,11 +368,17 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 			return
 		end
 		
+		self.Status:Ping( sender )
+		
 		-- end current request and try for another target.
 		self.Query.requested = false
 		
 	elseif msg == "STATUS" then
+		
 		self.Status:UpdatePlayer( sender, data )
+		
+	elseif msg == "PING" then
+		self.Status:Ping( sender )
 	end
 end
  
@@ -512,16 +504,24 @@ function Delleren:CallCommand( args )
 	
 	for i = 2,#args do
 		local arg = args[i]
-		if arg == "-s" then
-			mode = "SPELLS"
-		elseif arg == "-p" then
-			mode = "PLAYERS"
-		elseif arg == "-i" then
-			item = true 
-		elseif arg == "-m" then
-			manual = true
-		elseif arg == "-c" then
-			buff = false
+		
+		if string.sub(arg,1,1) == "-" then
+			-- option
+			
+			if arg == "-s" then
+				mode = "SPELLS"
+			elseif arg == "-p" then
+				mode = "PLAYERS"
+			elseif arg == "-i" then
+				item = true
+			elseif arg == "-m" then
+				manual = true
+			elseif arg == "-c" then
+				buff = false
+			else
+				print( "[Delleren] Unknown option: " .. arg )
+			end
+			
 		else
 		
 			if mode == "SPELLS" then
@@ -532,7 +532,7 @@ function Delleren:CallCommand( args )
 				table.insert( spells, spellid )
 				
 			elseif mode == "PLAYERS" then
-				table.insert( players, arg )
+				table.insert( players, string.lower(arg) )
 			end
 		end
 	end
@@ -542,7 +542,23 @@ function Delleren:CallCommand( args )
 		return
 	end
 	
-	self.Query:Start( spells, item, buff )
+	if #players == 0 then
+	
+		local role = UnitGroupRolesAssigned( "player" )
+		
+		-- default player priority
+		if role == "TANK" then
+			-- if they're a tank, prioritize the other tank
+			players = { "*t", "*h", "*d", "*" }
+			
+		else
+			-- otherwise prioritize healers > dps > tanks
+			players = { "*h", "*d", "*t", "*" }
+			
+		end
+	end
+	
+	self.Query:Start( spells, item, buff, manual, players )
 end
 
 -------------------------------------------------------------------------------
@@ -602,7 +618,7 @@ function Delleren:IteratePlayers()
 	local player = UnitGUID("player")
 	
 	return function()
-	
+		
 		while true do
 			index = index + 1
 			if (raid and index > 40) or (not raid and index > 4) then 

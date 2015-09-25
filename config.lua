@@ -11,6 +11,8 @@ local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 local SharedMedia = LibStub("LibSharedMedia-3.0")
 
+local VERSION = 1
+
 -------------------------------------------------------------------------------
 local SOUND_CHANNELS = {
 	["Master"]   = "Master";
@@ -39,6 +41,10 @@ Delleren.Config = {
 
 -------------------------------------------------------------------------------
 local DB_DEFAULTS = {
+
+	global = {
+		version = nil;
+	};
 
 	profile = {
 	
@@ -377,7 +383,7 @@ function Delleren.Config:InsertTrackedSpellOption( spellid )
 		image = icon;
 		imageWidth = 20;
 		imageHeight = 20;
-		fontSize = "large"; 
+		fontSize = "large";
 	} 
 	
 	self.config_tracked_spell_index = self.config_tracked_spell_index + 1
@@ -469,6 +475,12 @@ function Delleren.Config:CreateDB()
 	self.db.RegisterCallback( self, "OnProfileChanged", "Apply" )
 	self.db.RegisterCallback( self, "OnProfileCopied",  "Apply" )
 	self.db.RegisterCallback( self, "OnProfileReset",   "Apply" )
+	
+	-- insert older database patches here: --
+	
+	-----------------------------------------
+	
+	self.db.global.version = VERSION
 end
 
 -------------------------------------------------------------------------------

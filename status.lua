@@ -6,6 +6,9 @@
 
 local Delleren = DellerenAddon
 
+local PLAYER_TIMEOUT_LENGTH = 30
+local PING_TIMEOUT = 300
+
 -------------------------------------------------------------------------------
 Delleren.Status = {
 
@@ -24,6 +27,10 @@ Delleren.Status = {
     --                       }
 	--                         
 	--
+	
+	-- player ping times
+	-- ping time is used to determine if a player has disabled the addon
+	pings    = {};
 	
 	-- combined list of spells subscribed to by the raid, sorted
 	subs     = {};
@@ -62,13 +69,13 @@ Delleren.Status = {
 --
 function Delleren.Status:UpdatePlayer( name, data )
 
-	print( "STATUS", name, #data.cds, #data.sub, data.poll )
+--[[	print( "STATUS", name, #data.cds, #data.sub, data.poll )
 	for i = 1,#data.cds,5 do
 		print( data.cds[i], data.cds[i+1], data.cds[i+2], data.cds[i+3], data.cds[i+4] )
 	end
 	
 	print( "SUBS", data.sub[1], data.sub[2], data.sub[3], data.sub[4], data.sub[5], data.sub[6], data.sub[7] )
-	
+]]	
 	-- filter bad or potentially malicious data
 	if data.cds == nil then data.cds = {} end
 	if data.sub == nil then data.sub = {} end
@@ -78,9 +85,11 @@ function Delleren.Status:UpdatePlayer( name, data )
 	
 	-- convert data into friendly structure
 	local p = {
-		spells = {};
-		subs   = {};
-		time   = GetTime();
+		spells  = {};
+		subs    = {};
+		time    = GetTime();
+		timeout = 0;
+		ping    = GetTime();
 	}
 	
 	for i = 1,#data.cds,5 do
@@ -98,10 +107,10 @@ function Delleren.Status:UpdatePlayer( name, data )
 		
 		-- and store
 		p.spells[ spellid ] = {
-			duration   = duration / 1000;
+			duration   = duration;
 			charges    = charges;
 			maxcharges = maxcharges;
-			time       = time;o
+			time       = time;
 		}
 	end
 	
@@ -110,7 +119,7 @@ function Delleren.Status:UpdatePlayer( name, data )
 	end
 	
 	table.sort( p.subs )
-	
+	  
 	self.players[name] = p
 	self:Refresh( true, data.poll )
 end
@@ -160,6 +169,10 @@ function Delleren.Status:MergeSubLists()
 		end 
 	end
 	
+	for _,v2 in pairs( self.mysubs ) do
+		submap[v2] = true
+	end
+	
 	for spell,_ in pairs( submap ) do
 		table.insert( subs, spell )
 	end
@@ -171,9 +184,9 @@ function Delleren.Status:MergeSubLists()
 end
 
 -------------------------------------------------------------------------------
-function Delleren.Status:DoRefresh()
-	self:PrunePlayers()
-	
+-- returns true if there are new subs added.
+--
+function Delleren.Status:BuildSubData()
 	self.subs, self.submap = self:MergeSubLists()
 	
 	local fsubs   = {}
@@ -196,6 +209,19 @@ function Delleren.Status:DoRefresh()
 	
 	self.fsubs   = fsubs
 	self.fsubmap = fsubmap
+	
+	return newsubs
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:DoRefresh()
+	self:PrunePlayers()
+	
+	local newsubs 
+	
+	if self.refresh.subs then
+		newsubs = self:BuildSubData()
+	end
 	
 	-- if there are new subs or a poll was requested, send a status response.
 	if newsubs or self.refresh.send then
@@ -228,7 +254,7 @@ end
 -- Actual sending function, delayed.
 --
 function Delleren.Status:SendDelayed()
-	print( "DEBUG: sending status" )
+	 
 	-- build status message
 	local data = {}
 	
@@ -239,14 +265,13 @@ function Delleren.Status:SendDelayed()
 	for _,spellid in ipairs(self.fsubs) do
 		if IsSpellKnown( spellid ) then
 			
-			
 			-- spellid, duration, charges, maxcharges, time 
 			local sp_id, sp_duration, sp_charges, sp_maxcharges, sp_time
 			sp_id = spellid
 			
 			do
 				local cd_start, cd_duration = GetSpellCooldown( spellid )
-				sp_duration = GetSpellBaseCooldown( spellid )
+				sp_duration = GetSpellBaseCooldown( spellid ) / 1000
 				
 				-- TODO, get actual CD including talents and stuff, however that's done...
 				
@@ -350,7 +375,7 @@ function Delleren.Status:OnSpellUsed( unit, spell )
 	        or (not IsInRaid() and string.find( unit, "party" )
                                and not string.find( unit, "target" )) then
 	   
-		unit = UnitName( unit )
+		unit = Delleren:UnitFullName( unit )
 	else
 		return -- not in party.
 	end 
@@ -380,7 +405,6 @@ function Delleren.Status:OnSpellUsed( unit, spell )
 			end
 		end
 		
-		-- todo: update cooldown bar
 	end
 
 end
@@ -395,14 +419,19 @@ end
 --
 function Delleren.Status:HasSpellReady( unit, list )
 
-	local p = self.players[UnitName(unit)]
+	local p = self.players[Delleren:UnitFullName(unit)]
 	if not p then return nil end
+	
+	if self:PingTimeout( Delleren:UnitFullName(unit) ) then 
+		-- ignore ping timeout player
+		return nil 
+	end	
 	
 	for _,spell in ipairs( list ) do
 		local sp = p.spells[spell]
 		if sp then
 			self:UpdateSpellCooldown( sp )
-			print(" DEBUG: HasSpellReady ", sp.time, sp.charges, sp.maxcharges )
+		 
 			if sp.charges >= 1 then
 				return spell
 			end
@@ -438,6 +467,8 @@ function Delleren.Status:UpdateTrackingConfig( dontsend )
 		self.mysubmap[v.spell] = true
 	end
 	
+	self:BuildSubData()
+	
 	if not dontsend then
 		self:Send()
 	end
@@ -468,7 +499,7 @@ function Delleren.Status:BuildCDBarData()
 	
 	for playername in Delleren:IteratePlayers() do
 		local player = self.players[playername]
-		if player ~= nil then
+		if player ~= nil and not self:PingTimeout( playername ) then
 			local inrange = Delleren:UnitNearby( playername )
 			
 			for spellid,sp in pairs(player.spells) do
@@ -510,9 +541,7 @@ function Delleren.Status:BuildCDBarData()
 	end
 	
 	local cdbar_data = {}
-	
-	DEBUG1 = cdbar_data
-	
+	 
 	for k,spellid in ipairs( self.mysubs ) do
 		local entry = datamap[spellid]
 		if entry.value > 0 then
@@ -529,7 +558,7 @@ function Delleren.Status:BuildCDBarData()
 					})
 			elseif entry.value <= 5 then
 				table.insert( cdbar_data, 
-					{ spell = spellid, stacks = entry.stacks, disabled = false, 
+					{ spell = spellid, stacks = entry.stacks, disabled = false,
 					time = 0, duration = 0, outrange = (entry.value == 4) 
 					})
 			end
@@ -537,4 +566,30 @@ function Delleren.Status:BuildCDBarData()
 	end
 	
 	return cdbar_data
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:PlayerInTimeout( name )
+	if not self.players[name] then return false end
+	return GetTime() < self.players[name].timeout
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:GivePlayerTimeout( name )
+	self.players[name].timeout = GetTime() + PLAYER_TIMEOUT_LENGTH
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:Ping( name )
+	local p = self.players[name]
+	if not p then return end
+	p.ping = GetTime()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:PingTimeout( name )
+	local p = self.players[name]
+	if not p then return false end
+	
+	return GetTime() > p.ping + PING_TIMEOUT
 end

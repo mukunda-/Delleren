@@ -147,7 +147,7 @@ function Delleren.Indicator:UpdateAnimation()
 		self.frame.text:SetTextColor( 1,1,1,1 )
 	end
 end
-
+--[[
 -------------------------------------------------------------------------------
 function Delleren.Indicator:ShowHelpRequest( sender )
 	self.help.active = true
@@ -162,7 +162,7 @@ function Delleren.Indicator:ShowHelpRequest( sender )
 	
 	-- TODO: move this?
 	Delleren:EnableFrameUpdates()
-end
+end]]
 
 -------------------------------------------------------------------------------
 function Delleren.Indicator:Hide()
@@ -186,9 +186,9 @@ function Delleren.Indicator:SetIconID( id, item )
 	
 	local icon
 	if not item then
-		_,_,icon = GetSpellInfo( id )
+		icon = select( 3, GetSpellInfo( id ))
 	else
-		_,_,_,_,_,_,_,_,_,icon = GetItemInfo( id )
+		icon = select( 10, GetItemInfo( id ))
 	end
 	
 	self.frame.icon:SetTexture( icon )
