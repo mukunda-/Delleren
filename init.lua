@@ -24,22 +24,12 @@ function Delleren:InitMasque()
 	end
 	
 end
- 
--------------------------------------------------------------------------------
-function Delleren:InitFrames()
- 
---	local frame = CreateFrame( "Frame", "DellerenCDFrame" )
---	frame:SetMovable( true )
---	frame:EnableMouse( false )
---	frame:Show()
-end
 
 -------------------------------------------------------------------------------
 function Delleren:Setup()
 	self:InitMasque()
 	
-	self:InitFrames() 
-	
 	self.Indicator:Init()
 	self.CDBar:Init()
+	self.QueryList:Init()
 end

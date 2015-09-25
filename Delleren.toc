@@ -18,5 +18,6 @@ indicator.lua
 query.lua
 sounds.lua
 status.lua
+querylist.lua
 
 startup.lua

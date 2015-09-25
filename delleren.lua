@@ -25,6 +25,7 @@ end
 -------------------------------------------------------------------------------
 function Delleren:OnEnable()
 	print("DEBUG enabled")
+	--[[
 	self.CDBar:UpdateButtons(
 	
 		{
@@ -34,7 +35,7 @@ function Delleren:OnEnable()
 			{ spell = 137562, stacks = 0,  disabled = false, time = 0,         duration = 0,  outrange = true  };
 			{ spell = 123986, stacks = 35, disabled = false, time = 0,         duration = 0,  outrange = false };
 		}
-	)
+	)]]
 	
 	self:ReMasque()
 	
