@@ -16,14 +16,14 @@ Delleren.CDBar = {
 
 -------------------------------------------------------------------------------
 function Delleren.CDBar:Init()
-	self.frame = CreateFrame( "Frame", "DellerenCDBar" )
+	self.frame = CreateFrame( "Frame", "DellerenCDBar", UIParent )
 	self.frame:SetPoint( "CENTER", 0, 0 )
 	self.frame:SetSize( 64,64 )
 end
 
 -------------------------------------------------------------------------------
 function Delleren.CDBar:UpdateButtons( data )
-	if not Delleren.Config.db.profile.cdbar.enabled then return end;
+	if not Delleren.Config.db.profile.cdbar.enabled then return end
 	
 	local relayout = false
 	for k,v in ipairs( data ) do
@@ -72,6 +72,12 @@ function Delleren.CDBar:UpdateLayout()
 	local frameheight = math.max( rows * (size+padding) - padding, 32 )
 	
 	self.frame:SetSize( framewidth, frameheight )
+	
+	Delleren.Config.db.profile.cdbar.x = math.max( Delleren.Config.db.profile.cdbar.x, -GetScreenWidth()/2 )
+	Delleren.Config.db.profile.cdbar.y = math.max( Delleren.Config.db.profile.cdbar.y, -GetScreenHeight()/2+8 )
+	Delleren.Config.db.profile.cdbar.x = math.min( Delleren.Config.db.profile.cdbar.x,  GetScreenWidth()/2-8 )
+	Delleren.Config.db.profile.cdbar.y = math.min( Delleren.Config.db.profile.cdbar.y,  GetScreenHeight()/2 )
+			
 	self.frame:SetPoint( "TOPLEFT", nil, "CENTER", 
 							Delleren.Config.db.profile.cdbar.x,
 							Delleren.Config.db.profile.cdbar.y )
@@ -90,6 +96,13 @@ function Delleren.CDBar:UpdateLayout()
 	end
 	
 	Delleren:ReMasque()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.CDBar:Refresh()
+	local data = Delleren.Status:BuildCDBarData()
+	
+	self:UpdateButtons( data )
 end
 
 -------------------------------------------------------------------------------
@@ -126,6 +139,11 @@ function Delleren.CDBar:Unlock()
 		green:Show()
 		self.dragframe:SetFrameStrata("HIGH")
 		
+		self.dragframe.text = self.dragframe:CreateFontString()
+		self.dragframe.text:SetFont( "Fonts\\FRIZQT__.TTF", 10, "OUTLINE" ) 
+		self.dragframe.text:SetText( "Delleren CDBar" )
+		self.dragframe.text:SetPoint( "CENTER", self.dragframe )
+		
 		self.frame:SetScript("OnMouseDown", function(self,button)
 			if button == "LeftButton" then
 				self:SetMovable( true )
@@ -139,8 +157,12 @@ function Delleren.CDBar:Unlock()
 			
 			-- fixup to use center anchor
 			local x,y = self:GetLeft(), self:GetTop()
-			x = x - (768*GetMonitorAspectRatio()) / 2
-			y = y - 768/2
+			x = x - GetScreenWidth() / 2 
+			y = y - GetScreenHeight() / 2
+			x = math.max( x, -GetScreenWidth()/2 )
+			y = math.max( y, -GetScreenHeight()/2+8 )
+			x = math.min( x, GetScreenWidth()/2-8 )
+			y = math.min( y, GetScreenHeight()/2 )
 			self:ClearAllPoints()
 			self:SetPoint( "TOPLEFT", nil, "CENTER", x, y )
 			

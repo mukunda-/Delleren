@@ -42,9 +42,8 @@ function CDButton:Create( parent )
 	local stacks = data.frame:CreateFontString()
 	data.frame.stacks = stacks
 	stacks:SetFont( STACKFONT, 10, "OUTLINE" ) 
-	stacks:SetPoint( "BOTTOMRIGHT", data.frame.icon, "BOTTOMRIGHT", 0, 0 )
-	stacks:SetText( "2" )
-	stacks:Show()
+	stacks:SetPoint( "BOTTOMRIGHT", data.frame.icon, "BOTTOMRIGHT", 0, 0 ) 
+	stacks:Hide()
 	
 	data.frame.icon:SetTexture( "Interface\\Icons\\INV_Misc_QuestionMark" )
 	data.frame:SetSize( 32, 32 )
@@ -78,7 +77,7 @@ end
 function CDButton:Hide()
 	if not self.hidden then
 		self.hidden = true
-		self.frame.Hide()
+		self.frame:Hide()
 	end
 end
 
@@ -160,7 +159,6 @@ function CDButton:Update( spell, stacks, disabled, time, duration, outrange )
 	end
 	
 	if self.hidden then
-		self.hidden = false
 		self:Show()
 	end
 end

@@ -90,12 +90,18 @@ function Delleren.Status:UpdatePlayer( name, data )
 					data.cds[i], data.cds[i+1], data.cds[i+2], 
 					data.cds[i+3], data.cds[i+4]
 		
+		if time ~= 0 then
+			-- time is sent as duration remaining
+			-- convert to start of cd
+			time = GetTime() + time - duration
+		end
+		
 		-- and store
 		p.spells[ spellid ] = {
 			duration   = duration / 1000;
 			charges    = charges;
 			maxcharges = maxcharges;
-			time       = time;
+			time       = time;o
 		}
 	end
 	
@@ -205,12 +211,12 @@ end
 -- Send a status message to the raid. Will delay a while first.
 --
 function Delleren.Status:Send( poll )
-	if self.sending then return end
 	
-	self.sending = true
 	self.poll    = poll
 	
-	Delleren:ScheduleTimer( "SendStatusDelayed", 5 )
+	if self.sending then return end
+	self.sending = true
+	Delleren:ScheduleTimer( "SendStatusDelayed", 2 )
 end
 
 -------------------------------------------------------------------------------
@@ -242,10 +248,9 @@ function Delleren.Status:SendDelayed()
 				local cd_start, cd_duration = GetSpellCooldown( spellid )
 				sp_duration = GetSpellBaseCooldown( spellid )
 				
-				-- TODO, get actual CD including talents and stuff
+				-- TODO, get actual CD including talents and stuff, however that's done...
 				
-				local charges, maxcharges, start, duration2 = GetSpellCharges( spellid )
-				-- todo
+				local charges, maxcharges, start, duration2 = GetSpellCharges( spellid ) 
 				
 				if charges ~= nil then
 					-- charge based spell
@@ -254,7 +259,7 @@ function Delleren.Status:SendDelayed()
 					sp_charges    = charges
 					sp_maxcharges = maxcharges
 					if charges ~= maxcharges then
-						sp_time = start + duration
+						sp_time = start + duration - GetTime()
 					else
 						sp_time = 0
 					end
@@ -270,7 +275,7 @@ function Delleren.Status:SendDelayed()
 					else
 
 						sp_charges = 0
-						sp_time = cd_start + cd_duration
+						sp_time = cd_start + cd_duration - GetTime()
 						sp_duration = cd_duration
 					end
 					
@@ -279,7 +284,7 @@ function Delleren.Status:SendDelayed()
 			end
 			
 			-- pack into data
-			table.insert( data.cds, sp_spellid    )
+			table.insert( data.cds, sp_id         )
 			table.insert( data.cds, sp_duration   )
 			table.insert( data.cds, sp_charges    )
 			table.insert( data.cds, sp_maxcharges )
@@ -310,6 +315,7 @@ end
 --
 function Delleren.Status:UpdateSpellCooldown( sp )
 
+ 
 	while sp.charges < sp.maxcharges do
 		if GetTime() > sp.time + sp.duration then
 			sp.time = sp.time + sp.duration
@@ -323,6 +329,7 @@ function Delleren.Status:UpdateSpellCooldown( sp )
 		end
 		
 	end
+ 
 end
 
 -------------------------------------------------------------------------------
@@ -346,7 +353,7 @@ function Delleren.Status:OnSpellUsed( unit, spell )
 		unit = UnitName( unit )
 	else
 		return -- not in party.
-	end
+	end 
 	
 	local p = self.players[unit]
 	if not p then return end
@@ -354,6 +361,7 @@ function Delleren.Status:OnSpellUsed( unit, spell )
 	-- we have data for this player
 	local sp = p.spells[spell]
 	if sp then
+		
 		-- we have data for the spell that they cast
 		
 		-- add new spell charges
@@ -394,6 +402,7 @@ function Delleren.Status:HasSpellReady( unit, list )
 		local sp = p.spells[spell]
 		if sp then
 			self:UpdateSpellCooldown( sp )
+			print(" DEBUG: HasSpellReady ", sp.time, sp.charges, sp.maxcharges )
 			if sp.charges >= 1 then
 				return spell
 			end
@@ -415,6 +424,11 @@ function Delleren.Status:NewGroup()
 end
 
 -------------------------------------------------------------------------------
+-- Read tracked spell list/data from the config module.
+--
+-- @param dontsend Prevent sending a STATUS message. (useful during plugin load
+--                 when you want to delay.)
+--
 function Delleren.Status:UpdateTrackingConfig( dontsend )
 	self.mysubs = {}
 	self.mysubmap = {}
@@ -427,4 +441,100 @@ function Delleren.Status:UpdateTrackingConfig( dontsend )
 	if not dontsend then
 		self:Send()
 	end
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:BuildCDBarData()
+
+	local datamap = {}
+	
+	for k,v in pairs( self.mysubs ) do
+		datamap[v] = { spell = spellid, 
+				    stacks = 0, 
+					time = 999, -- cd time remaining (find lowest)
+					duration = 0, 
+					outrange_cd = true,
+					outrange_ready = true,
+					value = 0 }
+	end
+	
+	-- values:
+	-- 0 = dont show (not available by any player)
+	-- 1 = all players who can provide it are dead (show as disabled)
+	-- 2 - on cooldown and out of range (show cd overlay and color red)
+	-- 3 - on cooldown and in range (show cd overlay and color normal)
+	-- 4 - ready and out of range (color red, show stacks)
+	-- 5 - ready and in range (color normal, show stacks)
+	
+	for playername in Delleren:IteratePlayers() do
+		local player = self.players[playername]
+		if player ~= nil then
+			local inrange = Delleren:UnitNearby( playername )
+			
+			for spellid,sp in pairs(player.spells) do
+				if self.mysubmap[spellid] then
+					local entry = datamap[spellid]
+					entry.duration = sp.duration
+					
+					if UnitIsDeadOrGhost( playername ) then
+					
+						-- only show disabled button if there is no other data
+						
+						if entry.value < 1 then
+							entry.value = 1
+						end
+						
+					else
+						self:UpdateSpellCooldown( sp )
+						
+						if sp.charges > 0 then
+							entry.stacks = entry.stacks + sp.charges
+							if inrange then
+								entry.value = 5
+							elseif entry.value < 4 then
+								entry.value = 4
+							end
+						else
+							local timeleft = sp.time + sp.duration - GetTime()
+							entry.time = math.min( entry.time, timeleft )
+							if inrange and entry.value < 3 then
+								entry.value = 3
+							elseif entry.value < 2 then
+								entry.value = 2
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	
+	local cdbar_data = {}
+	
+	DEBUG1 = cdbar_data
+	
+	for k,spellid in ipairs( self.mysubs ) do
+		local entry = datamap[spellid]
+		if entry.value > 0 then
+			if entry.value <= 1 then
+				table.insert( cdbar_data, 
+					{ spell = spellid, stacks = 0, disabled = true, 
+					  time = 0, duration = 0, outrange = false 
+					})
+			elseif entry.value <= 3 then
+				table.insert( cdbar_data, 
+					{ spell = spellid, stacks = 0, disabled = false,  
+					  time = GetTime() + entry.time - entry.duration, 
+					  duration = entry.duration, outrange = (entry.value == 2)
+					})
+			elseif entry.value <= 5 then
+				table.insert( cdbar_data, 
+					{ spell = spellid, stacks = entry.stacks, disabled = false, 
+					time = 0, duration = 0, outrange = (entry.value == 4) 
+					})
+			end
+		end
+	end
+	
+	return cdbar_data
 end

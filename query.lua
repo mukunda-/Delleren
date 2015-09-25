@@ -68,6 +68,10 @@ function Delleren.Query:Start( list, item, buff )
 				table.insert( check_list, spell )
 			end
 		end
+	else
+		for k,spell in ipairs(list) do
+			table.insert( check_list, spell )
+		end
 	end
 	
 	-- TODO: player preference list
@@ -80,6 +84,10 @@ function Delleren.Query:Start( list, item, buff )
 			if spell then
 				table.insert( self.list, { name = name, id = spell } )
 			end
+		end
+		
+		if not Delleren.Help.active then
+			Delleren.Indicator:SetIconID( instant_list[1], self.item )
 		end
 	end
 	
@@ -95,7 +103,7 @@ function Delleren.Query:Start( list, item, buff )
 			self:SendCheck( check_list )
 			Delleren:PlaySound( "CALL" )
 		else
-		
+			
 			self:Fail()
 		end
 	end

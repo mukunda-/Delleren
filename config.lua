@@ -26,6 +26,8 @@ Delleren.Config = {
 	spell_search_text  = "";
 	
 	tracked_spell_data = { 
+	
+		-- default list, overwritten by config
 		{ spell = 6940   };
 		{ spell = 33206  };
 		{ spell = 102342 };
@@ -180,7 +182,7 @@ local OPTIONS_TABLE = {
 			type = "group";
 			args = {
 				desc = {
-					name  = "The CD Bar is an actionbar-like display of CDs that you are tracking.";
+					name  = "The CD Bar is an actionbar-like display of CDs that you are tracking. If you are like Migs (you play on a toaster), disabling it may give a tiny performance boost.";
 					type  = "description";
 					order = 1;
 				};
@@ -513,7 +515,7 @@ end
 -------------------------------------------------------------------------------
 -- Apply the configuration settings.
 --
-function Delleren.Config:Apply()
+function Delleren.Config:Apply( onload )
 
 	local data = self.db.profile
 	
@@ -521,8 +523,6 @@ function Delleren.Config:Apply()
 	Delleren.Indicator:SetFontSize( data.indicator.fontsize )
 	Delleren.Indicator:SetFont( SharedMedia:Fetch( "font", data.indicator.font ))
 	Delleren.Indicator:SetPosition( data.indicator.x, data.indicator.y )
-	
-	Delleren.Status:UpdateTrackingConfig( true )
 	
 	self:CacheSoundPaths()
 	
@@ -534,6 +534,8 @@ function Delleren.Config:Apply()
 			self.tracked_spell_data = data
 		end
 	end
+	
+	Delleren.Status:UpdateTrackingConfig( onload )
 	
 	if not data.locked then 
 		Delleren:UnlockFrames()

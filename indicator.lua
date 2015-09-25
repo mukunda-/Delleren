@@ -18,6 +18,7 @@ Delleren.Indicator = {
 	font = "Fonts\\FRIZQT__.TTF";
 	fontsize = 16;
 	frame = nil;
+	shown = false;
 }
 
 -------------------------------------------------------------------------------
@@ -56,7 +57,7 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren.Indicator:Init()
-	local frame = CreateFrame( "Button", "DellerenIndicator" )
+	local frame = CreateFrame( "Button", "DellerenIndicator", UIParent )
 	self.frame = frame
 	
 	--
@@ -166,11 +167,13 @@ end
 -------------------------------------------------------------------------------
 function Delleren.Indicator:Hide()
 	self.frame:Hide()
+	self.shown = false
 end
 
 -------------------------------------------------------------------------------
 function Delleren.Indicator:Show()
 	self.frame:Show()
+	self.shown = true
 end
 
 -------------------------------------------------------------------------------
@@ -185,7 +188,7 @@ function Delleren.Indicator:SetIconID( id, item )
 	if not item then
 		_,_,icon = GetSpellInfo( id )
 	else
-		_,_,_,_,_,_,_,_,_,icon = GetSpellInfo( id )
+		_,_,_,_,_,_,_,_,_,icon = GetItemInfo( id )
 	end
 	
 	self.frame.icon:SetTexture( icon )
@@ -218,9 +221,14 @@ function Delleren.Indicator:EnableDragging( icon )
 			self:SetMovable( false )
 			
 			-- fixup to use center anchor
-			local x,y = self:GetCenter()
-			x = x - (768*GetMonitorAspectRatio()) / 2
-			y = y - 768/2
+			local x, y = self:GetCenter()
+			x = x - GetScreenWidth() / 2 
+			y = y - GetScreenHeight() / 2 
+			x = math.max( x, -GetScreenWidth()/2 )
+			y = math.max( y, -GetScreenHeight()/2 )
+			x = math.min( x, GetScreenWidth()/2 )
+			y = math.min( y, GetScreenHeight()/2 )
+			
 			self:ClearAllPoints()
 			self:SetPoint( "CENTER", x, y )
 			
@@ -289,5 +297,9 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren.Indicator:SetPosition( x, y )
+	x = math.max( x, -GetScreenWidth()/2 )
+	y = math.max( y, -GetScreenHeight()/2 )
+	x = math.min( x, GetScreenWidth()/2 )
+	y = math.min( y, GetScreenHeight()/2 )
 	self.frame:SetPoint( "CENTER", x, y )
 end

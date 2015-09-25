@@ -17,12 +17,14 @@ function Delleren:OnInitialize()
 
 	SLASH_DELLEREN1 = "/delleren"
 	
+	self.update_dummy_frame = CreateFrame("Frame")
+	
 	self.Config:CreateDB()
 end
 
 -------------------------------------------------------------------------------
 function Delleren:OnEnable()
-	
+	print("DEBUG enabled")
 	self.CDBar:UpdateButtons(
 	
 		{
@@ -36,7 +38,7 @@ function Delleren:OnEnable()
 	
 	self:ReMasque()
 	
-	self.Config:Apply()
+	self.Config:Apply( true )
 	
 	self:RegisterEvent( "UNIT_SPELLCAST_SUCCEEDED", 
 						"OnUnitSpellcastSucceeded" )
@@ -51,40 +53,50 @@ function Delleren:OnEnable()
 		-- exchange status with party
 		
 		-- add a longer delay to let shit load
-		self:ScheduleTimer( function() Delleren.Status:Send(true) end, 10 )
+		self:ScheduleTimer( function() Delleren.Status:Send(true) end, 8 )
+		--self:ScheduleTimer( function() Delleren.Status:Send(true) end, 16 )
 		
 	end
+	
+	self.update_dummy_frame:SetScript( "OnUpdate", 
+							  function() Delleren:OnFrame() end )
 end
 
 -------------------------------------------------------------------------------
 function Delleren:OnGroupJoined()
-
+	
 	self.Status:NewGroup()
 end
 
 -------------------------------------------------------------------------------
 function Delleren:OnTalentsChanged()
+
 	self.Status:Send()
 end
 
 -------------------------------------------------------------------------------
-function Delleren:OnUnitSpellcastSucceeded( event, unitID, rank, 
+function Delleren:OnUnitSpellcastSucceeded( event, unitID, spell, rank, 
 												 lineID, spellID )
 	self.Status:OnSpellUsed( unitID, spellID )
 	
 	if self.Query.active and not self.Query.buff 
-	   and spellID == self.Query.spell 
 	   and UnitGUID( unitID ) == UnitGUID( self.Query.unit ) then
-		
-		self.Indicator:SetAnimation( "QUERY", "SUCCESS" )
-		self.Query.active = false
+	
+		if (not self.Query.item and spellID == self.Query.spell) or
+		   (self.Query.item and spell == GetItemSpell( self.Query.spell )) then
+			
+			self.Indicator:SetAnimation( "QUERY", "SUCCESS" )
+			self.Query.active = false
+		end
 	end
 	
-	if self.Help.active and not self.Help.buff
-	   and spellID == self.Help.spell then
+	if self.Help.active and not self.Help.buff and unitID == "player" then
 	   
-		self.Indicator:SetAnimation( "HELP", "SUCCESS" )
-		self.Help.active = false
+		if (not self.Help.item and spellID == self.Help.spell) or
+		   (self.Help.item and spell == GetItemSpell( self.Help.spell )) then
+			self.Indicator:SetAnimation( "HELP", "SUCCESS" )
+			self.Help.active = false
+		end
 	end
 end
 
@@ -99,7 +111,9 @@ function Delleren:OnAuraApplied( spellID, source, dest )
 	if self.Query.active and self.Query.buff 
 	   and self.Query.requested
 	   and source == UnitGUID( self.Query.unit )
-	   and spellID == self.Query.spell then
+	   and ((not self.Query.item and spellID == self.Query.spell) 
+	       or (self.Query.item and 
+	       GetSpellInfo(spellID) == GetItemSpell(self.Query.spell))) then
 	   
 		if dest == UnitGUID( "player" ) then
 		
@@ -115,7 +129,9 @@ function Delleren:OnAuraApplied( spellID, source, dest )
 	
 	if self.Help.active and self.Help.buff 
 	   and source == UnitGUID( "player" ) 
-	   and spellID == self.Help.spell then
+	   and ((not self.Help.item and spellID == self.Help.spell)
+	       or (self.Help.item 
+		      and GetSpellInfo(spellID) == GetItemSpell(self.Help.spell))) then
  
 		if dest == UnitGUID( self.Help.unit ) then
 			
@@ -244,6 +260,11 @@ function Delleren:UnitLongRange( unit )
 end
 
 -------------------------------------------------------------------------------
+function Delleren:UnitNearby( unit )
+	return UnitDistance( unit ) < 40*40 and IsItemInRange( 34471, unit )
+end
+
+-------------------------------------------------------------------------------
 -- Returns a range weight used for sorting the cd responses.
 --
 local function UnitRangeValue( unit )
@@ -356,12 +377,12 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 	elseif msg == "NO" then
 		-- player denied our cd request
 		
-		if data.rid ~= self.query.request_id then
+		if data.rid ~= self.Query.rid then
 			return
 		end
 		
 		-- end current request and try for another target.
-		self.query.requested = false
+		self.Query.requested = false
 		
 	elseif msg == "STATUS" then
 		self.Status:UpdatePlayer( sender, data )
@@ -436,26 +457,29 @@ function Delleren:OnFrame()
 	if self.Query.active then self.Query:Update() end
 	if self.Help.active  then self.Help:Update()  end
 	
-	self.Indicator:UpdateAnimation()
-	
-	if not self.Query.active and not self.Help.active 
-	    and not self.Indicator:Animating() then
+	if self.Indicator.shown then
+		self.Indicator:UpdateAnimation()
 		
-		self:DisableFrameUpdates()
-		self.Indicator:Hide()
+		if not self.Query.active and not self.Help.active 
+			and not self.Indicator:Animating() then
+			
+			self:DisableFrameUpdates()
+			self.Indicator:Hide()
+		end
+	end
+	
+	if self.Config.db.profile.cdbar.enabled then
+		self.CDBar:Refresh()
 	end
 end
 
 -------------------------------------------------------------------------------
--- Enable animations and combat log parsing.
+-- Enable combat log parsing. (this used to be a bit more than that)
 --
 function Delleren:EnableFrameUpdates()
 
 	if self.updates_enabled then return end
 	self.updates_enabled = true
-	
-	self.Indicator.frame:SetScript( "OnUpdate", 
-							  function() Delleren:OnFrame() end )
 							  
 	self:RegisterEvent( "COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent" )
 end
@@ -467,7 +491,6 @@ function Delleren:DisableFrameUpdates()
 	if not self.updates_enabled then return end
 	self.updates_enabled = false
 	
-	self.Indicator.frame:SetScript( "OnUpdate", nil )
 	self:UnregisterEvent( "COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent" )
 end
 
@@ -478,11 +501,11 @@ function Delleren:CallCommand( args )
 
 	if self.Query.active then return end
 	
-	local spells = {}
+	local spells  = {}
 	local players = {}
-	local item   = false
-	local manual = false
-	local buff   = true
+	local item    = false
+	local manual  = false
+	local buff    = true
 	
 	local mode = "SPELLS"
 	
@@ -493,8 +516,7 @@ function Delleren:CallCommand( args )
 		elseif arg == "-p" then
 			mode = "PLAYERS"
 		elseif arg == "-i" then
-			item = true
-			buff = false
+			item = true 
 		elseif arg == "-m" then
 			manual = true
 		elseif arg == "-c" then
