@@ -114,7 +114,7 @@ Call for a defensive CD from any healer.
 Spell presets may be used along with spell IDs, the current ones are:
 
 "painsups" - Hand of Sacrifice, Pain Suppression, Vigilance, and Ironbark
-"jeeves"   - Jeeves (item)
+"jeeves" - Jeeves (item)
 
 ================================================================================
 Indicator

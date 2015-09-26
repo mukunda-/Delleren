@@ -7,7 +7,8 @@
 local Delleren = DellerenAddon
 
 local PLAYER_TIMEOUT_LENGTH = 30
-local PING_TIMEOUT = 300
+local PING_TIMEOUT          = 180
+local PING_REFRESH_TIME     = 60
 
 -------------------------------------------------------------------------------
 Delleren.Status = {
@@ -25,12 +26,7 @@ Delleren.Status = {
 	--                         maxcharges; -- the max number of charges 
 	--                         time;       -- time when the cooldown started
     --                       }
-	--                         
 	--
-	
-	-- player ping times
-	-- ping time is used to determine if a player has disabled the addon
-	pings    = {};
 	
 	-- combined list of spells subscribed to by the raid, sorted
 	subs     = {};
@@ -46,9 +42,6 @@ Delleren.Status = {
 	mysubs   = {};
 	mysubmap = {};
 	
-	-- program options
-	MAX_SUBS = 16;
-	
 	refresh = {
 		queued = false; -- refresh operation is queued
 		send   = false; -- send status message after
@@ -58,7 +51,15 @@ Delleren.Status = {
 	sending    = false;
 	poll       = false;
 	
-	reloaded   = true;
+	spellserial = 1;
+	subserial   = 1;
+	
+	lastping    = GetTime();
+	
+	last_cds    = {}; -- used to check if spell data changed.
+	
+	-- program options
+	MAX_SUBS = 16;
 }
 
 -------------------------------------------------------------------------------
@@ -84,44 +85,65 @@ function Delleren.Status:UpdatePlayer( name, data )
 	if name == UnitName( "player" ) then return end
 	
 	-- convert data into friendly structure
-	local p = {
-		spells  = {};
-		subs    = {};
-		time    = GetTime();
-		timeout = 0;
-		ping    = GetTime();
+	local p = self.players[name]
+	
+	p = p or {
+		spells      = {};
+		subs        = {};
+		timeout     = 0; 
+		spellserial = 0;
+		subserial   = 0;
 	}
 	
-	for i = 1,#data.cds,5 do
+	p.time = GetTime()
+	
+	if p.spellserial ~= data.spellserial or data.poll then
+		p.spellserial = data.spellserial
+		local newspells = {}
 		
-		-- unpack
-		local spellid, duration, charges, maxcharges, time = 
-					data.cds[i], data.cds[i+1], data.cds[i+2], 
-					data.cds[i+3], data.cds[i+4]
+		for i = 1,#data.cds,3 do
+			
+			-- unpack
+			local spellid, duration, maxcharges = 
+						data.cds[i], data.cds[i+1], data.cds[i+2] 
+			
+			local newspell = {
+				duration   = duration;
+				maxcharges = maxcharges;
+				
+				charges    = maxcharges; 
+				time       = 0; 
+			}
+			 
+			local oldspell = p.spells[spellid]
+			if oldspell then
+				newspell.charges = oldspell.charges
+				newspell.time    = oldspell.time
+			end
+			
+			-- and store
+			newspells[spellid] = newspell
+		end
+
+		p.spells = newspells
+	end
+	
+	local subschanged = false
+	
+	if p.subserial ~= data.subserial or data.poll then
+		p.subserial = data.subserial
+		subschanged = true
 		
-		if time ~= 0 then
-			-- time is sent as duration remaining
-			-- convert to start of cd
-			time = GetTime() + time - duration
+		p.subs = {}
+		for k,v in ipairs( data.sub	) do
+			table.insert( p.subs, v )
 		end
 		
-		-- and store
-		p.spells[ spellid ] = {
-			duration   = duration;
-			charges    = charges;
-			maxcharges = maxcharges;
-			time       = time;
-		}
+		table.sort( p.subs )
 	end
 	
-	for k,v in ipairs( data.sub	) do
-		table.insert( p.subs, v )
-	end
-	
-	table.sort( p.subs )
-	  
 	self.players[name] = p
-	self:Refresh( true, data.poll )
+	self:Refresh( subschanged, data.poll )
 end
 
 -------------------------------------------------------------------------------
@@ -224,7 +246,7 @@ function Delleren.Status:DoRefresh()
 	end
 	
 	-- if there are new subs or a poll was requested, send a status response.
-	if newsubs or self.refresh.send then
+	if newsubs or self.refresh.send then 
 		self:Send()
 	end
 	
@@ -238,7 +260,7 @@ end
 --
 function Delleren.Status:Send( poll )
 	
-	self.poll    = poll
+	self.poll = poll
 	
 	if self.sending then return end
 	self.sending = true
@@ -249,60 +271,42 @@ end
 function Delleren:SendStatusDelayed()
 	self.Status:SendDelayed()
 end
-
+ 
 -------------------------------------------------------------------------------
 -- Actual sending function, delayed.
 --
 function Delleren.Status:SendDelayed()
 	 
 	-- build status message
-	local data = {}
-	
-	data.cds = {}
-	data.sub = {}
-	data.poll = self.poll
-	
+	local data = {
+		cds         = {};
+		poll        = self.poll;
+		sub         = self.mysubs;
+		spellserial = self.spellserial;
+		subserial   = self.subserial;
+	}
+	  
 	for _,spellid in ipairs(self.fsubs) do
 		if IsSpellKnown( spellid ) then
 			
 			-- spellid, duration, charges, maxcharges, time 
-			local sp_id, sp_duration, sp_charges, sp_maxcharges, sp_time
+			local sp_id, sp_duration, sp_maxcharges 
 			sp_id = spellid
 			
-			do
-				local cd_start, cd_duration = GetSpellCooldown( spellid )
+			do 
 				sp_duration = GetSpellBaseCooldown( spellid ) / 1000
 				
-				-- TODO, get actual CD including talents and stuff, however that's done...
+				-- TODO, get actual CD including talents and stuff, however that's done. 
 				
 				local charges, maxcharges, start, duration2 = GetSpellCharges( spellid ) 
 				
 				if charges ~= nil then
 					-- charge based spell
 					
-					sp_duration   = duration2
-					sp_charges    = charges
-					sp_maxcharges = maxcharges
-					if charges ~= maxcharges then
-						sp_time = start + duration - GetTime()
-					else
-						sp_time = 0
-					end
+					sp_duration   = duration2 
+					sp_maxcharges = maxcharges 
 				else
 					-- normal spell
-					
-					if cd_duration <= 1.51 then 
-						-- it is off cooldown, or it is a GCD cooldown 
-						--                         (treat as off still)
-						
-						sp_charges = 1
-						sp_time = 0
-					else
-
-						sp_charges = 0
-						sp_time = cd_start + cd_duration - GetTime()
-						sp_duration = cd_duration
-					end
 					
 					sp_maxcharges = 1
 				end
@@ -311,21 +315,31 @@ function Delleren.Status:SendDelayed()
 			-- pack into data
 			table.insert( data.cds, sp_id         )
 			table.insert( data.cds, sp_duration   )
-			table.insert( data.cds, sp_charges    )
 			table.insert( data.cds, sp_maxcharges )
-			table.insert( data.cds, sp_time       )
 		end
 	end
 	
-	-- send status message
-	for _,spellid in ipairs( self.mysubs ) do
-		table.insert( data.sub, spellid )
+	if #self.last_cds ~= #data.cds then
+		self.spellserial = self.spellserial + 1
+		self.last_cds = data.cds
+	else
+		for i = 1,#data.cds do
+			if self.last_cds[i] ~= data.cds[i] then
+				self.spellserial = self.spellserial + 1
+				self.last_cds = data.cds
+				break
+			end
+		end
 	end
+	data.spellserial = self.spellserial
+	
+	data.ver = Delleren.version
 	
 	Delleren:Comm( "STATUS", data, "RAID" )
 	
-	self.sending = false
-	self.poll    = false
+	self.sending  = false
+	self.poll     = false
+	self.lastping = GetTime()
 end
 
 -------------------------------------------------------------------------------
@@ -467,6 +481,7 @@ function Delleren.Status:UpdateTrackingConfig( dontsend )
 	end
 	
 	self:BuildSubData()
+	self:SubsChanged()
 	
 	if not dontsend then
 		self:Send()
@@ -506,7 +521,7 @@ function Delleren.Status:BuildCDBarData()
 					local entry = datamap[spellid]
 					entry.duration = sp.duration
 					
-					if UnitIsDeadOrGhost( playername ) then
+					if UnitIsDeadOrGhost( playername ) or not UnitIsConnected(playername) then
 					
 						-- only show disabled button if there is no other data
 						
@@ -579,16 +594,63 @@ function Delleren.Status:GivePlayerTimeout( name )
 end
 
 -------------------------------------------------------------------------------
-function Delleren.Status:Ping( name )
-	local p = self.players[name]
-	if not p then return end
-	p.ping = GetTime()
-end
-
--------------------------------------------------------------------------------
 function Delleren.Status:PingTimeout( name )
 	local p = self.players[name]
 	if not p then return false end
 	
-	return GetTime() > p.ping + PING_TIMEOUT
+	return GetTime() > p.time + PING_TIMEOUT
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:SpellsChanged()
+	self.spellserial = self.spellserial + 1
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:SubsChanged()
+	self.subserial = self.subserial + 1
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:CheckPing()
+
+	if GetTime() - self.lastping > PING_REFRESH_TIME then
+		local data = {
+			spellserial = self.spellserial;
+			subserial   = self.subserial;
+			ver         = Delleren.version;
+		}
+		
+		self.lastping = GetTime()
+		Delleren:Comm( "PING", data, "RAID" )
+	end
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:OnPing( name, data )
+	local p = self.players[name]
+	if not p then
+		-- we dont have this player's data; send a poll
+		self:Send( true )
+		return
+	end
+	
+	p.time = GetTime()
+	if p.spellserial ~= data.spellserial or p.subserial ~= data.subserial then
+	
+		-- we are outdated
+		self:Send( true )
+	end
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:SetSpellCooldown( name, spell, time )
+	local p = self.players[name]
+	if not p then return end
+	
+	local sp = p.spells[spell]
+	if not sp then return end
+	
+	sp.charges = 0
+	sp.time = GetTime() - sp.duration + time
 end

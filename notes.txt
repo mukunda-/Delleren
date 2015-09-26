@@ -60,6 +60,7 @@ NO (WHISPER) - Decline a cd request.
      when the cd is on cooldown, or reserved.
 {
 	rid  = <mirrored request_id>
+	time = if this is set, the cd was on cooldown and this is the number of seconds remaining until its available
 }
 
 STATUS (RAID) - Update raid with status
@@ -72,21 +73,28 @@ STATUS (RAID) - Update raid with status
 		 
 		spellid     = spell id 
 		duration    = the duration of the spell's cooldown (seconds)
-		charges     = charges we have ready
 		max_charges = the maximum amount of charges we can have
-		time        = time until another charge becomes available (add 1 to charges when time passes this)
-		              or 0 if its not on cd
-		
 	}
 	sub = {
 		-- list of spell IDs that we are interested in tracking (subscribing to), this is hard limited to 16 ids
 	}
+	
+	spellserial = serial number that changes if the player changes their spell list
+	subserial   = serial number that changes if the player changes their sub list
+	
+	ver = delleren addon version
+	
 	poll = true if we want everyone to send a status message
 }
 
 PING (RAID)
 {
-	-- an empty message that refreshes a player's ping time
+	-- an empty message that refreshes a player's ping time and gives serial numbers
+	
+	spellserial = serial number that changes if the player changes their spell list
+	subserial   = serial number that changes if the player changes their sub list
+	
+	ver = delleren addon version
 }
 
 spells that are "subscribed" allow players to access them faster by directly 

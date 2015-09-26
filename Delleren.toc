@@ -15,6 +15,7 @@ config.lua
 delleren.lua
 help.lua
 indicator.lua
+manual.lua
 query.lua
 sounds.lua
 status.lua

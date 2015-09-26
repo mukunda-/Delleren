@@ -11,6 +11,7 @@
 local Delleren = DellerenAddon
  
 local COMM_PREFIX = "DELLEREN"
+local PROTOCOL_VERSION = 1
 
 -------------------------------------------------------------------------------		  
 function Delleren:OnInitialize()
@@ -38,24 +39,25 @@ function Delleren:OnEnable()
 	
 	self:RegisterComm( "DELLEREN" )
 	
+	self:Print( "Version: " .. self.version )
+	
 	if IsInGroup() then
 		-- exchange status with party
 		
 		-- add a longer delay to let shit load
-		self:ScheduleTimer( function() Delleren.Status:Send(true) end, 15 )
-		--self:ScheduleTimer( function() Delleren.Status:Send(true) end, 16 )
+		self:ScheduleTimer( function() Delleren.Status:Send(true) end, 10 )
 		
 	end
 	
 	self.update_dummy_frame:SetScript( "OnUpdate", 
 							  function() Delleren:OnFrame() end )
 							  
-	self:ScheduleRepeatingTimer( "SendPing", 120 )
+	self:ScheduleRepeatingTimer( "CheckPing", 30 )
 end
 
 -------------------------------------------------------------------------------
-function Delleren:SendPing()
-	self:Comm( "PING", {}, "RAID" )
+function Delleren:CheckPing()
+	self.Status:CheckPing()
 end
 
 -------------------------------------------------------------------------------
@@ -66,7 +68,7 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:OnTalentsChanged()
-
+	self.Status:SpellsChanged()
 	self.Status:Send()
 end
 
@@ -223,35 +225,36 @@ local function UnitDistance( unit )
 	local d = x*x + y*y
 	return d
 end
-
--------------------------------------------------------------------------------
-function Delleren:UnitShortRange( unit )
-	return UnitDistance( unit ) < 35 * 35 and IsItemInRange( 34471, unit )
-end
-
--------------------------------------------------------------------------------
-function Delleren:UnitLongRange( unit )
-	return IsItemInRange( 34471, unit )
-end
-
+ 
 -------------------------------------------------------------------------------
 function Delleren:UnitNearby( unit )
 	return UnitDistance( unit ) < 40*40 and IsItemInRange( 34471, unit )
 end
-
+ 
 -------------------------------------------------------------------------------
--- Returns a range weight used for sorting the cd responses.
---
-local function UnitRangeValue( unit )
-	local a = UnitDistance( unit )
-	
-	if UnitShortRange( unit ) then
-		return a
-	elseif UnitLongRange( unit ) then
-		return a + 100000
+function Delleren:GetSpellReadyTime( spell, item )
+	if not item then
+		if IsSpellKnown( spell ) then
+			local charges = GetSpellCharges( spell ) 
+			if charges ~= nil and charges >= 1 then return 0 end
+			
+			local start, duration, enable = GetSpellCooldown( spell )
+			if start == 0 then return 0 end
+			
+			-- if there is 1 second left on the cd, then it's ready enough
+			-- also uh, account for gcd time which may interfere
+			return duration - (GetTime() - start) 
+		end
 	else
-		return a + 1000000
+		if GetItemCount( v ) > 0 then
+			local start, duration, enable = GetItemCooldown( v )
+			if start == 0 then return 0 end
+			
+			return duration - (GetTime() - start)
+		end
 	end
+	
+	return nil
 end
 
 -------------------------------------------------------------------------------
@@ -285,26 +288,8 @@ function Delleren:HasCDReady( ignore_reserve, list, item )
 	-- todo: spell reserves
 	
 	for k,v in ipairs( list ) do
-		if not item then
-			if IsSpellKnown( v ) then
-				local charges = GetSpellCharges( v ) 
-				if charges ~= nil and charges >= 1 then return v end
-				
-				local start, duration, enable = GetSpellCooldown( v )
-				if start == 0 then return v end
-				
-				-- if there is 1 second left on the cd, then it's ready enough
-				-- also uh, account for gcd time which may interfere
-				if duration - (GetTime() - start) < 1.6 then return v end
-			end
-		else
-			if GetItemCount( v ) > 0 then
-				local start, duration, enable = GetItemCooldown( v )
-				if start == 0 then return v end
-				
-				if duration - (GetTime() - start) < 1.6 then return v end
-			end
-		end
+		local t = Delleren:GetSpellReadyTime( v, item )
+		if t ~= nil and t <= 1.6 then return v end 
 	end
 end
 
@@ -344,7 +329,12 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		
 		if not self:HasCDReady( false, data.id, data.item ) then
 		
-			self:DeclineCD( sender, data.rid )
+			if not data.item then
+				
+				self:DeclineCD( sender, data.rid, data.id )
+			else
+				self:DeclineCD( sender, data.rid )
+			end
 		else
 			self.Help:Start( sender, data.id, data.item, data.buff )
 		end
@@ -356,7 +346,9 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 			return
 		end
 		
-		self.Status:Ping( sender )
+		if data.time then
+			self.Status:SetSpellCooldown( sender, self.Query.spell, data.time )
+		end
 		
 		-- end current request and try for another target.
 		self.Query.requested = false
@@ -366,7 +358,7 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		self.Status:UpdatePlayer( sender, data )
 		
 	elseif msg == "PING" then
-		self.Status:Ping( sender )
+		self.Status:OnPing( sender, data )
 	end
 end
  
@@ -392,6 +384,8 @@ function Delleren:Comm( msg, data, dist, target )
 		dist = "RAID"
 		data.tar = UnitGUID( target )
 	end
+	
+	data.pv = PROTOCOL_VERSION
 	
 	local packed = self:Serialize( msg, data )
 	
@@ -426,8 +420,14 @@ end
 -- @param target Name of player we are denying.
 -- @param rid    Request ID.
 --
-function Delleren:DeclineCD( target, rid )
+function Delleren:DeclineCD( target, rid, spell )
 	local data = { rid = rid }
+	
+	if spell then
+		local time = Delleren:GetSpellReadyTime( spell, false )
+		if time >= 3 then data.time = time end
+	end
+	
 	self:Comm( "NO", data, "WHISPER", target )
 end
 
@@ -594,12 +594,11 @@ function SlashCmdList.DELLEREN( msg )
 		Delleren:Print( "My what a filthy mind you have!" )
 		
 	else
-		Delleren:Print( "——————————————" ) 
+		
 		Delleren:Print( "Command listing:" ) 
 		Delleren:Print( "  /delleren config - Open configuration."  )
-		Delleren:Print( "  /delleren call - Call for a cd. (See help.)" ) 
-		Delleren:Print( "  /delleren help - Show help." )
-		Delleren:Print( "——————————————" ) 
+		Delleren:Print( "  /delleren call - Call for a cd. (See User's Manual.)" ) 
+	
 	end
 	  
 end
@@ -661,6 +660,6 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:Print( text )
-	local prefix = "[|cffa7000cDelleren|r] "
+	local prefix = "|cffa7000c<Delleren>|r "
 	print( prefix .. text )
 end

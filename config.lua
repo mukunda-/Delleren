@@ -51,8 +51,8 @@ local DB_DEFAULTS = {
 		locked = false;
 		
 		indicator = {
-			size     = 64;
-			fontsize = 16;
+			size     = 80;
+			fontsize = 14;
 			font     = "Arial Narrow";
 			icon_x   = 0;
 			icon_y   = 0;
@@ -322,6 +322,18 @@ local OPTIONS_TABLE = {
 				};
 			};
 		};
+		
+		manual = {
+			name = "User's Manual";
+			type = "group";
+			args = {
+				manual = {
+					order = 1;
+					type = "description";
+					name = "";
+				};
+			};
+		};
 	};
 }
 
@@ -495,6 +507,8 @@ function Delleren.Config:Init()
 	
 	self.options.args.indicator.args.fontface.values = self.font_list
 	
+	self.options.args.manual.args.manual.name = Delleren.Manual:Read()
+	
 	for k,v in pairs( self.options.args.sounds.args ) do
 		if v.values == "SOUND_LISTING" then
 			v.values = self.sound_list
@@ -656,9 +670,21 @@ function Delleren.Config:TrackingEditorChanged( val )
 	for word in string.gmatch( val, "%S+" ) do
 		local spellid = tonumber(word)
 		if spellid ~= nil and GetSpellInfo( spellid ) then
-			table.insert( list, {spell=spellid} )
+		
+			local duplicate = false
 			
-			if #list >= Delleren.Status.MAX_SUBS then break end
+			for k,v in pairs( list ) do
+				if list.spell == spellid then
+					duplicate = true
+					break
+				end
+			end
+			
+			if not duplicate then
+				table.insert( list, {spell=spellid} )
+				
+				if #list >= Delleren.Status.MAX_SUBS then break end
+			end
 		end
 	end
 	
@@ -670,4 +696,3 @@ function Delleren.Config:TrackingEditorChanged( val )
 	Delleren.Status:UpdateTrackingConfig()
 	Delleren.CDBar:UpdateLayout()
 end
-
