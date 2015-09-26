@@ -56,6 +56,8 @@ local DB_DEFAULTS = {
 			font     = "Arial Narrow";
 			icon_x   = 0;
 			icon_y   = 0;
+			x        = 0;
+			y        = 0;
 		};
 		
 		sound = {
@@ -538,7 +540,6 @@ function Delleren.Config:Apply( onload )
 	
 	self:CacheSoundPaths()
 	
-	Delleren.CDBar:UpdateLayout()
 	
 	do
 		local success,data = Delleren:Deserialize( data.tracking.list )
@@ -548,6 +549,7 @@ function Delleren.Config:Apply( onload )
 	end
 	
 	Delleren.Status:UpdateTrackingConfig( onload )
+	Delleren.CDBar:UpdateLayout()
 	
 	if not data.locked then 
 		Delleren:UnlockFrames()
@@ -666,5 +668,6 @@ function Delleren.Config:TrackingEditorChanged( val )
 	self:RebuildTrackedSpellOptions()
 	
 	Delleren.Status:UpdateTrackingConfig()
+	Delleren.CDBar:UpdateLayout()
 end
 

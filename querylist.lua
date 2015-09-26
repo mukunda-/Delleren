@@ -25,7 +25,7 @@ Delleren.QueryList = {
 -------------------------------------------------------------------------------
 function Delleren.QueryList:Init()
 	self.frame = CreateFrame( "Frame", "DellerenQueryList", UIParent )
-	
+	self.frame:SetFrameStrata( "DIALOG" )
 	self.frame:SetSize( FRAMEWIDTH, 10 )
 	
 	self.frame.bg = self.frame:CreateTexture()

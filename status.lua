@@ -339,7 +339,6 @@ end
 -- Check if a spell has come off of cooldown and add a charge for it.
 --
 function Delleren.Status:UpdateSpellCooldown( sp )
-
  
 	while sp.charges < sp.maxcharges do
 		if GetTime() > sp.time + sp.duration then

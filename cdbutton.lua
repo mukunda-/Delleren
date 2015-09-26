@@ -33,12 +33,13 @@ function CDButton:Create( parent )
 	data.frame.cooldown:SetAllPoints()
 	data.frame.cooldown:SetDrawEdge( false )
 	data.frame.icon:SetAllPoints()
-	data.frame.icon:SetTexCoord( 0, 1,0,1 )
+	data.frame.icon:SetTexCoord( 0.1, 0.9, 0.1, 0.9 )
+	
+	-- not sure what im doing here, hopefully everyone uses masque.
 	data.frame:SetNormalTexture( "" )
-	data.frame:SetPushedTexture( "" )
-	data.frame:SetHighlightTexture( "" )
-	
-	
+	data.frame:SetPushedTexture( "Interface\\BUTTONS\\CheckButtonHilight", "add" )
+	data.frame:SetHighlightTexture( "Interface\\BUTTONS\\ButtonHilight-Square", "add" )
+	 
 	local stacks = data.frame:CreateFontString()
 	data.frame.stacks = stacks
 	stacks:SetFont( STACKFONT, 10, "OUTLINE" ) 
@@ -107,7 +108,16 @@ end
 
 -------------------------------------------------------------------------------
 function CDButton:Clicked( button ) 
-	print( button )
+
+	if self.stacks == 0 then
+		return
+	end
+	
+	if button == "LeftButton" then
+		Delleren.Query:Start( {self.spell}, false, false, false, nil )
+	else
+		Delleren.Query:Start( {self.spell}, false, false, true, nil )
+	end
 end
 
 -------------------------------------------------------------------------------

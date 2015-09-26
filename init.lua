@@ -4,6 +4,9 @@
 -- See LICENSE-DELLEREN.TXT
 -------------------------------------------------------------------------------
 
+local VERSION = "1.0.0"
+
+-------------------------------------------------------------------------------
 DellerenAddon = LibStub("AceAddon-3.0"):NewAddon( "Delleren", 
 	             		  "AceComm-3.0", "AceEvent-3.0", "AceSerializer-3.0",
 						  "AceTimer-3.0" ) 
@@ -11,8 +14,7 @@ DellerenAddon = LibStub("AceAddon-3.0"):NewAddon( "Delleren",
 local Delleren = DellerenAddon
 
 -------------------------------------------------------------------------------
-Delleren.version = "1.0.0"
--------------------------------------------------------------------------------
+Delleren.version = VERSION
 Delleren.unlocked = false
 
 -------------------------------------------------------------------------------

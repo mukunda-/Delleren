@@ -47,6 +47,24 @@ Delleren.Query = {
 function Delleren.Query:Start( list, item, buff, manual, players )
 	if self.active then return end -- query in progress already
 	
+	
+	if players == nil or #players == 0 then
+	
+		-- default player priority setup
+		local role = UnitGroupRolesAssigned( "player" )
+		
+		-- default player priority
+		if role == "TANK" then
+			-- if they're a tank, prioritize the other tank
+			players = { "*t", "*h", "*d", "*" }
+			
+		else
+			-- otherwise prioritize healers > dps > tanks
+			players = { "*h", "*d", "*t", "*" }
+			
+		end
+	end
+	
 	self.active      = true
 	self.time        = GetTime()
 	self.start_time  = self.time
@@ -94,7 +112,8 @@ function Delleren.Query:Start( list, item, buff, manual, players )
 			if spell and Delleren:UnitNearby( name ) 
 			   and not Delleren.Status:PingTimeout( name ) 
 			   and not UnitIsDeadOrGhost( name ) 
-			   and UnitIsConnected( name ) then
+			   and UnitIsConnected( name )
+			   and self:PlayerPassesFilter(name) then
 			   
 				table.insert( self.list, 
 					{ name = name;
@@ -267,6 +286,22 @@ local PLAYER_ROLE_WILDCARDS = {
 }
 
 -------------------------------------------------------------------------------
+function Delleren.Query:PlayerPassesFilter( name )
+	
+	for _,player in ipairs( self.players ) do
+		if PLAYER_ROLE_WILDCARDS[player] then
+			local role = PLAYER_ROLE_WILDCARDS[player]
+			if UnitGroupRolesAssigned( name ) == role then return true end
+		elseif player == "*" then 
+			return true
+		elseif player == string.lower( name ) then
+			return true
+		end
+	end
+	return false
+end
+
+-------------------------------------------------------------------------------
 function Delleren.Query:GetPreferredRequestIndex()
 	
 	-- normally this isn't needed, but if we only have a player or two
@@ -409,6 +444,11 @@ function Delleren.Query:HandleReadyMessage( name, data )
 	end
 	
 	if Delleren:UnitNearby( name ) then
+	
+		if self.manual and not self:PlayerPassesFilter( name ) then
+			-- player isn't in player list
+			return
+		end
 		
 		table.insert( self.list, 
 			{ 

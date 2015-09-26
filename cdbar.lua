@@ -66,10 +66,13 @@ function Delleren.CDBar:UpdateLayout()
 		self.buttons[i]:SetSize( size, size )
 	end
 	
-	local rows = math.floor((#self.buttons-1)/columns)+1
+	local maxcols = math.min( #Delleren.Config.tracked_spell_data, columns )
+	maxcols = math.max( maxcols, 1 )
 	
-	local framewidth  = math.max( columns * (size+padding) - padding, 64 )
-	local frameheight = math.max( rows * (size+padding) - padding, 32 )
+	local maxrows = math.floor((#Delleren.Config.tracked_spell_data-1)/columns)+1
+	
+	local framewidth  = math.max( maxcols * (size+padding) - padding, 64 )
+	local frameheight = math.max( maxrows * (size+padding) - padding, 32 )
 	
 	self.frame:SetSize( framewidth, frameheight )
 	

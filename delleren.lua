@@ -24,18 +24,6 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:OnEnable()
-	print("DEBUG enabled")
-	--[[
-	self.CDBar:UpdateButtons(
-	
-		{
-			{ spell = 115072, stacks = 1,  disabled = false, time = 0,         duration = 0,  outrange = false };
-			{ spell = 121253, stacks = 2,  disabled = false, time = GetTime(), duration = 60, outrange = true  };
-			{ spell = 116841, stacks = 0,  disabled = true,  time = 0,         duration = 0,  outrange = false };
-			{ spell = 137562, stacks = 0,  disabled = false, time = 0,         duration = 0,  outrange = true  };
-			{ spell = 123986, stacks = 35, disabled = false, time = 0,         duration = 0,  outrange = false };
-		}
-	)]]
 	
 	self:ReMasque()
 	
@@ -168,7 +156,7 @@ end
 -------------------------------------------------------------------------------
 function Delleren:UnitFullName( unit )
 	local n,r = UnitName(unit)
-	if r then
+	if r and r ~= "" then
 		return n .. '-' .. r
 	end
 	return n
@@ -488,6 +476,47 @@ function Delleren:DisableFrameUpdates()
 end
 
 -------------------------------------------------------------------------------
+local CALL_SPELL_PRESETS = {
+	painsups = { 6940, 33206, 114030, 102342 };
+	jeeves   = { 49040 };
+}
+
+-------------------------------------------------------------------------------
+local function TableContainsValue( table, value )
+	for k,v in pairs(table) do
+		if v == value then return k end
+	end
+	
+	return nil
+end
+
+-------------------------------------------------------------------------------
+local function PushCallSpell( spells, arg )
+
+	local list = nil
+	
+	if CALL_SPELL_PRESETS[arg] then
+		list = CALL_SPELL_PRESETS[arg]
+	else
+	
+		local spellid = tonumber( arg )
+		if not spellid then
+			print( "[Delleren] Invalid Spell ID: " .. arg )
+			return
+		end
+		
+		list = { spellid }
+	end
+	
+	for _,spell in ipairs(list) do
+	
+		if not TableContainsValue( spells, spell ) then
+			table.insert( spells, spell )
+		end
+	end
+end
+
+-------------------------------------------------------------------------------
 -- Parse a call command and execute it.
 --
 function Delleren:CallCommand( args )
@@ -519,45 +548,27 @@ function Delleren:CallCommand( args )
 			elseif arg == "-c" then
 				buff = false
 			else
-				print( "[Delleren] Unknown option: " .. arg )
+				Delleren:Print( "Unknown option: " .. arg )
 			end
 			
 		else
 		
 			if mode == "SPELLS" then
-				local spellid = tonumber( arg )
-				if not spellid then
-					print( "[Delleren] Invalid Spell ID: " .. arg )
-				end
-				table.insert( spells, spellid )
+			
+				PushCallSpell( spells, arg )
 				
 			elseif mode == "PLAYERS" then
+			
 				table.insert( players, string.lower(arg) )
 			end
 		end
 	end
 	
 	if #spells == 0 then
-		print( "[Delleren] No spell IDs given!" )
+		Delleren:Print( "No spell IDs given!" )
 		return
 	end
-	
-	if #players == 0 then
-	
-		local role = UnitGroupRolesAssigned( "player" )
-		
-		-- default player priority
-		if role == "TANK" then
-			-- if they're a tank, prioritize the other tank
-			players = { "*t", "*h", "*d", "*" }
-			
-		else
-			-- otherwise prioritize healers > dps > tanks
-			players = { "*h", "*d", "*t", "*" }
-			
-		end
-	end
-	
+	 
 	self.Query:Start( spells, item, buff, manual, players )
 end
 
@@ -578,12 +589,17 @@ function SlashCmdList.DELLEREN( msg )
 	elseif args[1] == "config" then
 		Delleren.Config:Open()
 	elseif args[1] == "fuck" then
-
-		print( "[Delleren] My what a filthy mind you have!" )
+		 
+		-- this is a police quest reference
+		Delleren:Print( "My what a filthy mind you have!" )
 		
 	else
-		print( "/delleren config - Open configuration." )
-		print( "/delleren call - Call for a cd. (See manual.)" )
+		Delleren:Print( "——————————————" ) 
+		Delleren:Print( "Command listing:" ) 
+		Delleren:Print( "  /delleren config - Open configuration."  )
+		Delleren:Print( "  /delleren call - Call for a cd. (See help.)" ) 
+		Delleren:Print( "  /delleren help - Show help." )
+		Delleren:Print( "——————————————" ) 
 	end
 	  
 end
@@ -641,4 +657,10 @@ function Delleren:UnitNameColored( unit )
 	local _,cls = UnitClass(unit)
 	
 	return "|c" .. RAID_CLASS_COLORS[cls].colorStr .. UnitName(unit) .. "|r"
+end
+
+-------------------------------------------------------------------------------
+function Delleren:Print( text )
+	local prefix = "[|cffa7000cDelleren|r] "
+	print( prefix .. text )
 end
