@@ -96,6 +96,7 @@ function Delleren.Status:UpdatePlayer( name, data )
 	}
 	
 	p.time = GetTime()
+	p.version = data.ver
 	
 	if p.spellserial ~= data.spellserial or data.poll then
 		p.spellserial = data.spellserial

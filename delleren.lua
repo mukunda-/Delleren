@@ -3,9 +3,7 @@
 -- External CD caller.
 -- (C) 2015 Mukunda Johnson (mukunda@mukunda.com)
 --
--- See LICENSE-DELLEREN.TXT
--------------------------------------------------------------------------------
--- version 1.1 beta
+-- See LICENSE-DELLEREN.TXT 
 -------------------------------------------------------------------------------
 
 local Delleren = DellerenAddon
@@ -573,6 +571,35 @@ function Delleren:CallCommand( args )
 end
 
 -------------------------------------------------------------------------------
+function Delleren:WhoCommand()
+	
+	local players_with    = {}
+	local players_without = {}
+	
+	Delleren:Print( "Your version: |cff00ff00" .. self.version .. "|r" )
+	
+	local count = 0
+	
+	for player in self:IteratePlayers() do
+		if self.Status.players[player] then
+			players_with[player] = data.version or "???"
+		else
+			players_without[player] = true
+		end
+		
+		count = count + 1
+	end
+	
+	for k,v in pairs( players_with ) do
+		Delleren:Print( k .. ": |cff00ff00" .. v .. "|r" )
+	end
+	
+	for k,v in pairs( players_without ) do
+		Delleren:Print( k .. ": |cffff0000Not installed.|r" )
+	end
+end
+
+-------------------------------------------------------------------------------
 -- Slash command for macro binding.
 --
 function SlashCmdList.DELLEREN( msg )
@@ -588,6 +615,8 @@ function SlashCmdList.DELLEREN( msg )
 		Delleren:CallCommand( args ) 
 	elseif args[1] == "config" then
 		Delleren.Config:Open()
+	elseif args[1] == "who" or args[1] == "version" then
+		Delleren:WhoCommand()
 	elseif args[1] == "fuck" then
 		 
 		-- this is a police quest reference
@@ -598,6 +627,7 @@ function SlashCmdList.DELLEREN( msg )
 		Delleren:Print( "Command listing:" ) 
 		Delleren:Print( "  /delleren config - Open configuration."  )
 		Delleren:Print( "  /delleren call - Call for a cd. (See User's Manual.)" ) 
+		Delleren:Print( "  /delleren who - List player versions." ) 
 	
 	end
 	  

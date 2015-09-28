@@ -89,7 +89,7 @@ local DB_DEFAULTS = {
 			columns      = 4;
 			padding      = 0;
 			enable_mouse = true;
-			enabled      = true;
+			enabled      = false;
 			x            = 0;
 			y            = -100;
 		};
