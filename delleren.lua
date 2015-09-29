@@ -383,6 +383,12 @@ function Delleren:Comm( msg, data, dist, target )
 		data.tar = UnitGUID( target )
 	end
 	
+	if dist == "RAID" and IsInGroup(LE_PARTY_CATEGORY_INSTANCE) 
+	   and IsInInstance() and not C_Garrison:IsOnGarrisonMap() then
+	
+		dist = "INSTANCE_CHAT"
+	end
+	
 	data.pv = PROTOCOL_VERSION
 	
 	local packed = self:Serialize( msg, data )
