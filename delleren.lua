@@ -302,6 +302,11 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		return
 	end
 	
+	if not UnitInParty( sender ) then
+		-- malicious message from outside
+		return
+	end
+	
 	if sender == UnitName( "player" ) then
 		-- ignore mirrored messages, (TODO does this happen?)
 		return
