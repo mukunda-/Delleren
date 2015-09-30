@@ -322,18 +322,7 @@ local OPTIONS_TABLE = {
 				};
 			};
 		};
-		
-		manual = {
-			name = "User's Manual";
-			type = "group";
-			args = {
-				manual = {
-					order = 1;
-					type = "description";
-					name = "";
-				};
-			};
-		};
+		 
 	};
 }
 
@@ -506,8 +495,6 @@ function Delleren.Config:Init()
 	self.sound_list = SharedMedia:List( "sound" )
 	
 	self.options.args.indicator.args.fontface.values = self.font_list
-	
-	self.options.args.manual.args.manual.name = Delleren.Manual:Read()
 	
 	for k,v in pairs( self.options.args.sounds.args ) do
 		if v.values == "SOUND_LISTING" then

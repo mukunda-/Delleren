@@ -4,7 +4,7 @@
 ## Author: mukunda
 ## SavedVariables: DellerenAddonSaved
 ## OptionalDeps: Masque
-## Version: 0.1
+## Version: 1.1.4
 embeds.xml
 
 init.lua
@@ -14,8 +14,7 @@ cdbutton.lua
 config.lua
 delleren.lua
 help.lua
-indicator.lua
-manual.lua
+indicator.lua 
 query.lua
 sounds.lua
 status.lua
