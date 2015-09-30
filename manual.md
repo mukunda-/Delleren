@@ -3,10 +3,12 @@
 
 #### User's Manual 
 
-Last Updated 9:24 AM 9/26/2015
+Last Updated 1:45 AM 9/30/2015
 
+-----
 Delleren is an addon that simplifies the process of identifying and calling for spells from other players in your raid. Both you and the player you want to call for CDs must have Delleren installed. For optimal results, your entire raid should have Delleren installed.
 
+-----
 ## Quick Start
 
 Create a macro and paste this into it:
@@ -15,7 +17,7 @@ Create a macro and paste this into it:
 
 And use that macro to call for a defensive CD. Reading the rest of the manual is highly recommended.
 
-
+-----
 ## Configuration
 
 Type `/delleren config` in your chat window to open the Delleren configuration panel.
@@ -28,7 +30,7 @@ Configuration sections:
   - Sounds: Options for which sounds are associated with events.
   - Tracked Spells: Spell tracking editor.
 
-
+-----
 ## Calling
 
 The "call" command is used to call for CDs from other players. It's usage is:
@@ -41,7 +43,7 @@ There are also a few presets listed below that you can use to populate your spel
 
 If you call for spells that are being "tracked" (see Tracking) then the call is instant and doesn't have to wait for responses from the raid first.
 
-## Options:
+### Options:
 
 #### -i : Item mode.
 
@@ -114,13 +116,13 @@ Spell presets may be used along with spell IDs, the current ones are:
  - `painsups` - Hand of Sacrifice, Pain Suppression, Vigilance, and Ironbark
  - `jeeves` - Jeeves (item)
 
-
-#### Indicator
+-----
+## Indicator
 
 The Delleren Indicator is easy to understand. If it's flashing and making noise, that means you need to cast the spell that's shown on the player that's shown. You have around seven seconds to do so.
 
-
-#### Tracking/CD Bar
+-----
+## Tracking/CD Bar
 
 Delleren provides a simple cooldown tracking interface that allows you to easily see if certain desired spells are available in your raid via the CD Bar. The CD Bar can be toggled on or off in the configuration panel. Disabling the CD Bar will increase performance slightly.
 
