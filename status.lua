@@ -16,51 +16,94 @@ Delleren.Status = {
 	-- indexed by player name
 	players = {};
 	
-	-- players structure:
-	-- players
-	--   [playername]
-	--     subs = { subbed spell ids, sorted }
-	--     spells[spellid] = {
-	--                         duration;   -- the length of the cd
-	--                         charges;    -- number of charges that are ready
-	--                         maxcharges; -- the max number of charges 
-	--                         time;       -- time when the cooldown started
-    --                       }
-	--
+	-- [[
+	PLAYERS STRUCTURE:
+
+	[playername]
+		version  = delleren version, nil if not installed
+		protocol = protocol version
+		compat   = if they have delleren installed and are compatible with us
+		loaded   = if player info is upto date
+		ignore   = if the player is ignored by the system
+		spec     = spec id
+		talents  = talentstring 
+		glyphs   = glyph list
+		timeout  = time when their timeout expires, 
+		          timeout is set when they dont respond to a help request
+		time     = last ping or status time
+		if spec, talents or glyphs changes, then the spells table is rebuilt
+		
+		-- spell table:
+		spells[spellid] = {
+			cd;         -- cd duration
+			charges;    -- number of charges that are ready
+			maxcharges; -- the max number of charges 
+			time;       -- time when the cooldown started
+		}
+	    one spell entry is created per spell found in the spell data  
+	]]
 	
-	-- combined list of spells subscribed to by the raid, sorted
-	subs     = {};
-	submap   = {};
+--	refresh = {
+--		queued = false; -- refresh operation is queued
+--		send   = false; -- send status message after 
+--	};
 	
-	-- subs filtered containing only spells that we know, sorted
-	fsubs    = {};
-	
-	-- fsubs as a map indexed by spellid, subbed spells are set to true
-	fsubmap  = {};
-	
-	-- spells that we have subscribed to
-	mysubs   = {};
-	mysubmap = {};
-	
-	refresh = {
-		queued = false; -- refresh operation is queued
-		send   = false; -- send status message after
-		subs   = false; -- rebuild sub data
-	};
-	
-	sending    = false;
-	poll       = false;
-	
-	spellserial = 1;
-	subserial   = 1;
+	send = {
+		queued = false; -- send operation is queued
+		poll   = false; -- ask for other player status
+	}
 	
 	lastping    = GetTime();
 	
-	last_cds    = {}; -- used to check if spell data changed.
+	myspec      = nil;
+	mytalents   = nil;
+	myglyphs    = nil;
+	myserial    = 1;
 	
-	-- program options
-	MAX_SUBS = 16;
+	-- tracked spells
+	mysubs      = {};
+	mysubmap    = {};
+	
+	prune_time  = GetTime();
+	scan_time   = GetTime();
 }
+
+-------------------------------------------------------------------------------
+-- Return player status data, creating a new entry if it doesn't exist.
+--
+-- @param name Name of player.
+--
+function Delleren.GetPlayerData( name )
+	local p = self.players[name]
+	if not p then
+		p = {
+			loaded  = false;
+			ignore  = false;
+			spec    = 0;
+			talents = "0000000000";
+			glyphs  = {};
+			serial  = 0;
+			name    = name;
+			
+			spells = {};
+			time   = GetTime()
+		}
+		self.players[name] = p
+	end
+	
+	return p
+end
+
+-------------------------------------------------------------------------------
+local function TablesDiffer( a, b )
+	if #a ~= #b then return true end
+	
+	for i = 1, #a do
+		if a[i] ~= b[i] then return true end
+	end
+	
+	return false
+end
 
 -------------------------------------------------------------------------------
 -- Record the status of a player.
@@ -69,92 +112,91 @@ Delleren.Status = {
 -- @param data The data of the STATUS comm message.
 --
 function Delleren.Status:UpdatePlayer( name, data )
-
---[[	print( "STATUS", name, #data.cds, #data.sub, data.poll )
-	for i = 1,#data.cds,5 do
-		print( data.cds[i], data.cds[i+1], data.cds[i+2], data.cds[i+3], data.cds[i+4] )
-	end
-	
-	print( "SUBS", data.sub[1], data.sub[2], data.sub[3], data.sub[4], data.sub[5], data.sub[6], data.sub[7] )
-]]	
+ 
 	-- filter bad or potentially malicious data
-	if data.cds == nil then data.cds = {} end
-	if data.sub == nil then data.sub = {} end
-	if #data.sub > self.MAX_SUBS then return end
-	if not UnitInParty( name ) then return end -- who is this?!
+	if not UnitInParty( name ) then return end -- unknown source!
 	if name == UnitName( "player" ) then return end
 	
 	-- convert data into friendly structure
-	local p = self.players[name]
+	local p = self.GetPlayerData( name )
+	p.compat  = true
+	p.version = data.v
+	p.time    = GetTime()
+	p.loaded  = true
 	
-	p = p or {
-		spells      = {};
-		subs        = {};
-		timeout     = 0; 
-		spellserial = 0;
-		subserial   = 0;
-	}
+	if p.spec ~= data.s or p.talents ~= data.t
+       or TablesDiffer( p.glyphs, data.g ) then
 	
-	p.time = GetTime()
-	p.version = data.ver
-	
-	if p.spellserial ~= data.spellserial or data.poll then
-		p.spellserial = data.spellserial
-		local newspells = {}
+		p.spec    = data.s
+		p.talents = data.t
+		p.glyphs  = data.g -- make sure this is immutable!
 		
-		for i = 1,#data.cds,3 do
-			
-			-- unpack
-			local spellid, duration, maxcharges = 
-						data.cds[i], data.cds[i+1], data.cds[i+2] 
-			
-			local newspell = {
-				duration   = duration;
-				maxcharges = maxcharges;
-				
-				charges    = maxcharges; 
-				time       = 0; 
-			}
-			 
-			local oldspell = p.spells[spellid]
-			if oldspell then
-				newspell.charges = oldspell.charges
-				newspell.time    = oldspell.time
-			end
-			
-			-- and store
-			newspells[spellid] = newspell
-		end
+		self:BuildSpellsTable( p )
+	end
+	
+	if data.poll then
+		self:Send()
+	end
+	--self:Refresh( data.poll )
+end
 
-		p.spells = newspells
+-------------------------------------------------------------------------------
+function Delleren.Status:UpdatePlayerFromInspect( name, data ) 
+	if not UnitInParty( name ) then return end -- unknown source!
+	if name == UnitName( "player" ) then return end
+	
+	local p = self.GetPlayerData( name )
+	
+	if p.spec ~= data.spec or p.talents ~= data.talents 
+	   or p.glyphs ~= data.glyphs then
+	
+		p.spec    = data.spec
+		p.talents = data.talents
+		p.glyphs  = data.glyphs
+		
+		self:BuildSpellsTable( p )
 	end
 	
-	local subschanged = false
+	p.loaded = true
 	
-	if p.subserial ~= data.subserial or data.poll then
-		p.subserial = data.subserial
-		subschanged = true
+	--self:Refresh()
+end
+
+-------------------------------------------------------------------------------
+-- Construct or update the player spells table.
+--
+-- @param player Player status data.
+--
+function Delleren.Status:BuildSpellsTable( player )
+	
+	local _,cls = UnitClass( player.name )
+	
+	local spells = Delleren.SpellData:GetSpells( cls, player.spec,
+												 player.talents, 
+												 player.glyphs )
+												 
+	for k,v in pairs( spells ) do
 		
-		p.subs = {}
-		for k,v in ipairs( data.sub	) do
-			table.insert( p.subs, v )
+		local old = player.spells[k]
+		if old then
+			v.time    = old.time
+			v.charges = old.charges
+		else
+			v.time    = 0
+			v.charges = v.maxcharges
 		end
-		
-		table.sort( p.subs )
 	end
 	
-	self.players[name] = p
-	self:Refresh( subschanged, data.poll )
+	player.spells = spells
 end
 
 -------------------------------------------------------------------------------
 -- Queue a status refresh.
 --
--- @param subs Rebuild subscription data.
 -- @param send Force send a status message afterwards.
 --
-function Delleren.Status:Refresh( subs, send )
-	if subs then self.refresh.subs = true end
+--[[
+function Delleren.Status:Refresh( send )
 	if send then self.refresh.send = true end
 	
 	if not self.refresh.queued then
@@ -164,7 +206,7 @@ function Delleren.Status:Refresh( subs, send )
 		        Delleren.Status:DoRefresh() 
 			end, 1 )
 	end
-end
+end]]
 
 -------------------------------------------------------------------------------
 -- Remove entries in the status table that are no longer in the party.
@@ -177,102 +219,33 @@ function Delleren.Status:PrunePlayers()
 		end
 	end
 end
-
--------------------------------------------------------------------------------
--- Returns a table of all spells subbed by the raid.
---
-function Delleren.Status:MergeSubLists()
-	-- merge all sublists from each player into one sub list
-	local submap = {}
-	local subs   = {}
-	
-	for _,p in pairs( self.players ) do 
-		for _,v2 in pairs( p.subs ) do
-			submap[v2] = true
-		end 
-	end
-	
-	for _,v2 in pairs( self.mysubs ) do
-		submap[v2] = true
-	end
-	
-	for spell,_ in pairs( submap ) do
-		table.insert( subs, spell )
-	end
-	
-	-- needs to be sorted for certain optimizations
-	table.sort( subs )
-	
-	return subs, submap
-end
-
--------------------------------------------------------------------------------
--- returns true if there are new subs added.
---
-function Delleren.Status:BuildSubData()
-	self.subs, self.submap = self:MergeSubLists()
-	
-	local fsubs   = {}
-	local fsubmap = {}
-	
-	local newsubs = false -- flag if new (known) subs were added to our list
-	
-	-- build the new filtered sub list and map
-	-- if there are new spells that weren't there before, set the newsubs flag
-	for _,spell in ipairs( self.subs ) do
-		if IsSpellKnown( spell ) then
-			if not self.fsubmap[spell] then
-				newsubs = true
-			end
-				
-			table.insert( fsubs, spell )
-			fsubmap[spell] = true
-		end
-	end
-	
-	self.fsubs   = fsubs
-	self.fsubmap = fsubmap
-	
-	return newsubs
-end
-
+--[[
 -------------------------------------------------------------------------------
 function Delleren.Status:DoRefresh()
-	self:PrunePlayers()
-	
-	local newsubs 
-	
-	if self.refresh.subs then
-		newsubs = self:BuildSubData()
-	end
-	
+	--self:PrunePlayers() TODO move this to a routine function
+	 
 	-- if there are new subs or a poll was requested, send a status response.
-	if newsubs or self.refresh.send then 
+	if self.refresh.send then 
 		self:Send()
 	end
 	
 	self.refresh.queued = false
-	self.refresh.subs   = false
 	self.refresh.send   = false
-end
+end]]
 
 -------------------------------------------------------------------------------
 -- Send a status message to the raid. Will delay a while first.
 --
-function Delleren.Status:Send( poll )
+function Delleren.Status:Send( poll ) 
+
+	if poll then self.send.poll = true end
 	
-	self.poll = poll
-	
-	if self.sending then return end
-	self.sending = true
-	Delleren:ScheduleTimer( "SendStatusDelayed", 2 )
+	if not self.send.queued then
+		self.send.queued = true
+		Delleren:ScheduleTimer( function() Delleren.Status:SendDelayed() end, 2 )
+	end
 end
 
--------------------------------------------------------------------------------
-function Delleren:SendStatusDelayed()
-	self.Status:SendDelayed()
-end
- 
 -------------------------------------------------------------------------------
 -- Actual sending function, delayed.
 --
@@ -280,84 +253,82 @@ function Delleren.Status:SendDelayed()
 	 
 	-- build status message
 	local data = {
-		cds         = {};
-		poll        = self.poll;
-		sub         = self.mysubs;
-		spellserial = self.spellserial;
-		subserial   = self.subserial;
-	}
-	  
-	for _,spellid in ipairs(self.fsubs) do
-		if IsSpellKnown( spellid ) then
-			
-			-- spellid, duration, charges, maxcharges, time 
-			local sp_id, sp_duration, sp_maxcharges 
-			sp_id = spellid
-			
-			do 
-				sp_duration = GetSpellBaseCooldown( spellid ) / 1000
-				
-				-- TODO, get actual CD including talents and stuff, however that's done. 
-				
-				local charges, maxcharges, start, duration2 = GetSpellCharges( spellid ) 
-				
-				if charges ~= nil then
-					-- charge based spell
-					
-					sp_duration   = duration2 
-					sp_maxcharges = maxcharges 
-				else
-					-- normal spell
-					
-					sp_maxcharges = 1
-				end
-			end
-			
-			-- pack into data
-			table.insert( data.cds, sp_id         )
-			table.insert( data.cds, sp_duration   )
-			table.insert( data.cds, sp_maxcharges )
-		end
-	end
-	
-	if #self.last_cds ~= #data.cds then
-		self.spellserial = self.spellserial + 1
-		self.last_cds = data.cds
-	else
-		for i = 1,#data.cds do
-			if self.last_cds[i] ~= data.cds[i] then
-				self.spellserial = self.spellserial + 1
-				self.last_cds = data.cds
-				break
-			end
-		end
-	end
-	data.spellserial = self.spellserial
-	
-	data.ver = Delleren.version
+		z = self.myserial;
+		s = self.myspec;
+		t = self.mytalents;
+		g = self.myglyphs;
+		p = self.send.poll;
+		v = Delleren.version;
+	} 
 	
 	Delleren:Comm( "STATUS", data, "RAID" )
 	
-	self.sending  = false
-	self.poll     = false
-	self.lastping = GetTime()
+	self.send.queued = false
+	self.send.poll   = false
+	self.lastping    = GetTime()
 end
 
 -------------------------------------------------------------------------------
--- Returns true if a spell is subbed by the raid.
---
-function Delleren.Status:IsSubbed( spell )
-	return self.submap[spell]
+function Delleren.Status:CheckPlayer( name ) 
+	local player = self:GetPlayerData( name )
+	
+	-- 10 seconds have passed and we haven't received data from the player yet
+	--
+	if not player.loaded and GetTime() > player.time + 10 then
+		Delleren.Inspect:TryStart( name )
+	end
 end
 
+-------------------------------------------------------------------------------
+function Delleren.Status:PeriodicRefresh()
+
+	local time = GetTime()
+
+	if time >= self.prune_time 
+	   and not UnitAffectingCombat( "player" ) then
+	   
+	    -- 5 minutes have passed since last prune and we aren't in combat.
+		self.prune_time = time + 5 * 60
+		self:PrunePlayers()
+		
+	end
+	
+	if time >= self.scan_time then
+		self.scan_time = time + 0.1
+		self.scan_index = self.scan_index + 1
+		
+		local unitid 
+		
+		if IsInRaid() then
+			if not UnitExists( "raid" .. self.scan_index ) then
+				self.scan_index = 1
+			end
+			
+			unitid = "raid" .. self.scan_index 
+		else
+			if not UnitExists( "party" .. self.scan_index ) then
+				self.scan_index = 1
+			end
+			
+			unitid = "party" .. self.scan_index
+		end
+		
+		if UnitExists( unitid ) 
+		   and UnitGUID( unitid ) ~= UnitGUID( "player" ) then
+		
+			self:CheckPlayer( Delleren:UnitFullName( unitid ))
+		end
+	end
+end
+ 
 -------------------------------------------------------------------------------
 -- Check if a spell has come off of cooldown and add a charge for it.
 --
 function Delleren.Status:UpdateSpellCooldown( sp )
  
 	while sp.charges < sp.maxcharges do
-		if GetTime() > sp.time + sp.duration then
-			sp.time = sp.time + sp.duration
+		if GetTime() > sp.time + sp.cd then
+			sp.time = sp.time + sp.cd
 			sp.charges = sp.charges + 1
 			if sp.charges >= sp.maxcharges then
 				sp.charges = sp.maxcharges -- redundant
@@ -365,10 +336,8 @@ function Delleren.Status:UpdateSpellCooldown( sp )
 			end
 		else
 			break
-		end
-		
-	end
- 
+		end 
+	end 
 end
 
 -------------------------------------------------------------------------------
@@ -403,22 +372,27 @@ function Delleren.Status:OnSpellUsed( unit, spell )
 		
 		-- we have data for the spell that they cast
 		
-		-- add new spell charges
-		local time = GetTime()
-		self:UpdateSpellCooldown( sp )
-		
-		-- use a charge, and reset the time if there's a time error
-		-- or if the time isn't set
-		sp.charges = sp.charges - 1
-		if sp.charges < 0 then 
-			sp.charges = 0 
-			sp.time = time
+		if sp.maxcharges == 1 then
+			-- easy non-charge mode
+			sp.charges = 0
+			sp.time = GetTime()
 		else
-			if sp.time == 0 then
-				sp.time = GetTime()
+			-- add new spell charges
+			local time = GetTime()
+			self:UpdateSpellCooldown( sp )
+			
+			-- use a charge, and reset the time if there's a time error
+			-- or if the time isn't set
+			sp.charges = sp.charges - 1
+			if sp.charges < 0 then 
+				sp.charges = 0 
+				sp.time = time
+			else
+				if sp.time == 0 then
+					sp.time = GetTime()
+				end
 			end
 		end
-		
 	end
 
 end
@@ -436,7 +410,7 @@ function Delleren.Status:HasSpellReady( unit, list )
 	local p = self.players[Delleren:UnitFullName(unit)]
 	if not p then return nil end
 	
-	if self:PingTimeout( Delleren:UnitFullName(unit) ) then 
+	if p.ignore then 
 		-- ignore ping timeout player
 		return nil 
 	end	
@@ -480,13 +454,6 @@ function Delleren.Status:UpdateTrackingConfig( dontsend )
 		table.insert( self.mysubs, v.spell )
 		self.mysubmap[v.spell] = true
 	end
-	
-	self:BuildSubData()
-	self:SubsChanged()
-	
-	if not dontsend then
-		self:Send()
-	end
 end
 
 -------------------------------------------------------------------------------
@@ -509,18 +476,18 @@ function Delleren.Status:BuildCDBarData()
 	-- 1 = all players who can provide it are dead (show as disabled)
 	-- 2 - on cooldown and out of range (show cd overlay and color red)
 	-- 3 - on cooldown and in range (show cd overlay and color normal)
-	-- 4 - ready and out of range (color red, show stacks)
+	-- 4 - ready and out of range (color red, show stacks) 
 	-- 5 - ready and in range (color normal, show stacks)
 	
 	for playername in Delleren:IteratePlayers() do
 		local player = self.players[playername]
-		if player ~= nil and not self:PingTimeout( playername ) then
+		if player ~= nil and not player.ignore then
 			local inrange = Delleren:UnitNearby( playername )
 			
 			for spellid,sp in pairs(player.spells) do
 				if self.mysubmap[spellid] then
 					local entry = datamap[spellid]
-					entry.duration = sp.duration
+					entry.duration = sp.cd
 					
 					if UnitIsDeadOrGhost( playername ) or not UnitIsConnected(playername) then
 					
@@ -541,7 +508,7 @@ function Delleren.Status:BuildCDBarData()
 								entry.value = 4
 							end
 						else
-							local timeleft = sp.time + sp.duration - GetTime()
+							local timeleft = sp.time + sp.cd - GetTime()
 							entry.time = math.min( entry.time, timeleft )
 							if inrange and entry.value < 3 then
 								entry.value = 3
@@ -590,6 +557,12 @@ function Delleren.Status:PlayerInTimeout( name )
 end
 
 -------------------------------------------------------------------------------
+function Delleren.Status:PlayerHasDelleren( name )
+	if not self.players[name] then return false end
+	return self.players[name].compat and not self:PingTimeout( name )
+end
+
+-------------------------------------------------------------------------------
 function Delleren.Status:GivePlayerTimeout( name )
 	self.players[name].timeout = GetTime() + PLAYER_TIMEOUT_LENGTH
 end
@@ -603,19 +576,12 @@ function Delleren.Status:PingTimeout( name )
 end
 
 -------------------------------------------------------------------------------
-function Delleren.Status:SpellsChanged()
-	self.spellserial = self.spellserial + 1
-end
-
--------------------------------------------------------------------------------
-function Delleren.Status:SubsChanged()
-	self.subserial = self.subserial + 1
-end
-
--------------------------------------------------------------------------------
 function Delleren.Status:CheckPing()
 
-	if GetTime() - self.lastping > PING_REFRESH_TIME then
+	if GetTime() - self.lastping > PING_REFRESH_TIME 
+	   and not UnitAffectingCombat( "player" ) then
+	
+		--[[
 		local data = {
 			spellserial = self.spellserial;
 			subserial   = self.subserial;
@@ -623,23 +589,23 @@ function Delleren.Status:CheckPing()
 		}
 		
 		self.lastping = GetTime()
-		Delleren:Comm( "PING", data, "RAID" )
+		--Delleren:Comm( "PING", data, "RAID" )
+		]]
+		
+		-- STATUS is super simple and lightweight to handle right now, 
+		-- so just send that.
+		
+		-- if Legion makes things complicated, then we'll do something about it
+		self:Send()
 	end
 end
 
 -------------------------------------------------------------------------------
 function Delleren.Status:OnPing( name, data )
-	local p = self.players[name]
-	if not p then
-		-- we dont have this player's data; send a poll
-		self:Send( true )
-		return
-	end
-	
+	local p = self:GetPlayerData( name )
 	p.time = GetTime()
-	if p.spellserial ~= data.spellserial or p.subserial ~= data.subserial then
 	
-		-- we are outdated
+	if not p.loaded then 
 		self:Send( true )
 	end
 end
@@ -653,5 +619,37 @@ function Delleren.Status:SetSpellCooldown( name, spell, time )
 	if not sp then return end
 	
 	sp.charges = 0
-	sp.time = GetTime() - sp.duration + time
+	sp.time = GetTime() - sp.cd + time
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:CacheTalents()
+	self.myserial = self.myserial + 1
+	self.myspec = GetSpecialization()
+	self.mytalents = ""
+	
+	for tier = 1,7 do
+		if GetTalentInfo( tier, 1 ) then
+			self.mytalents = self.mytalents .. "1"
+		elseif GetTalentInfo( tier, 2 ) then
+			self.mytalents = self.mytalents .. "2"
+		elseif GetTalentInfo( tier, 3 ) then
+			self.mytalents = self.mytalents .. "3"
+		else
+			self.mytalents = self.mytalents .. "0"
+		end
+	end
+	
+	self.myglyphs = {}
+	
+	for g = 1,NUM_GLYPH_SLOTS do
+		local enabled, _, _, spellid = GetGlyphSocketInfo( g )
+		
+		if enabled and Delleren.SpellData:GlyphFilter( spellid ) then
+			table.insert( self.myglyphs, spellid )
+		end
+	end
+	
+	table.sort( self.myglyphs )
+	
 end

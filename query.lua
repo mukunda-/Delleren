@@ -102,8 +102,6 @@ function Delleren.Query:Start( list, item, buff, manual, players )
 		end
 	end
 	
-	-- TODO: player preference list
-	
 	if #instant_list > 0 then
 		-- do an instant request
 		
@@ -119,6 +117,7 @@ function Delleren.Query:Start( list, item, buff, manual, players )
 					{ name = name;
 					  id = spell;
 					  timeout = Delleren.Status:PlayerInTimeout( name );
+					  compat  = Delleren.Status:PlayerHasDelleren( name );
 					})
 			end
 		end
@@ -133,15 +132,14 @@ function Delleren.Query:Start( list, item, buff, manual, players )
 			-- we can make an instant request
 			
 			if self:RequestCD() then
-				Delleren:PlaySound( "CALL" )
+				
 			end
 		else
 			
 			if #check_list > 0 then
 			
 				self:SendCheck( check_list )
-				
-				Delleren:PlaySound( "CALL" )
+				 
 			else
 			
 				self:Fail()
@@ -153,7 +151,7 @@ function Delleren.Query:Start( list, item, buff, manual, players )
 			-- no spells available	
 			self:Fail() 
 		else
-			Delleren:PlaySound( "CALL" )
+			
 			Delleren.QueryList:ShowList( self.list, self.item, true )
 			
 			if #check_list > 0 then
@@ -304,9 +302,29 @@ end
 -------------------------------------------------------------------------------
 function Delleren.Query:GetPreferredRequestIndex()
 	
-	-- normally this isn't needed, but if we only have a player or two
-	-- in timeout left, then we will resort to requesting from them.
+	-- if we don't find a "good" match, this records our last resort
+	-- of a non-delleren player, or a player in timeout
 	local last_resort = nil
+	local last_resort_value = 0 -- 1 = in timeout+no delleren
+	                            -- 2 = delleren in timeout
+								-- 3 = no delleren
+								-- 0 = not found
+					
+					
+	local function save_last_resort( index, data )
+		local value
+		if data.timeout and not data.compat then
+			value = 1
+		elseif data.timeout and data.compat then
+			value = 2
+		else
+			value = 3
+		end
+		if value > last_resort_value then
+			last_resort = index
+			last_resort_value = value
+		end
+	end
 	
 	for _,player in ipairs( self.players ) do
 		
@@ -316,11 +334,11 @@ function Delleren.Query:GetPreferredRequestIndex()
 			for index,listed in ipairs( self.list ) do
 				if UnitGroupRolesAssigned(listed.name) == role then
 					
-					if not listed.timeout then
+					if not listed.timeout and listed.compat then
 						return index
 					end
 					
-					if not last_resort then last_resort = index end
+					save_last_resort( index, listed )
 				end
 			end
 			
@@ -328,7 +346,7 @@ function Delleren.Query:GetPreferredRequestIndex()
 			for index,listed in ipairs( self.list ) do
 			
 				if not listed.timeout then return index end
-				if not last_resort then last_resort = index end
+				save_last_resort( index, listed )
 			end
 		else 
 			for index,listed in ipairs( self.list ) do
@@ -336,7 +354,7 @@ function Delleren.Query:GetPreferredRequestIndex()
 				if string.lower(listed.name) == player then
 					
 					if not listed.timeout then return index end
-					if not last_resort then last_resort = index end
+					save_last_resort( index, listed )
 				end
 			end
 		end
@@ -381,16 +399,28 @@ function Delleren.Query:RequestCD()
 	self.time      = GetTime()
 	self.spell     = request_data.id
 	
-	local msgdata = {
-		rid  = self.rid;
-		buff = self.buff;
-		item = self.item;
-		id   = self.spell;
-	}
+	if Delleren.Status:PlayerHasDelleren( request_data.name ) then
+		
+		local msgdata = {
+			rid  = self.rid;
+			buff = self.buff;
+			item = self.item;
+			id   = self.spell;
+		}
+		
+		Delleren:Comm( "GIVE", msgdata, "WHISPER", self.unit )
+		Delleren:PlaySound( "CALL" )
+	else
+		local spell_name = string.upper( GetSpellInfo( self.spell ) )
+		
+		SendChatMessage( "************************", "WHISPER", nil, self.unit )
+		SendChatMessage( "I need " .. spell_name .. ".", "WHISPER", nil, self.unit )
+		
+		-- todo: different call sound
+		Delleren:PlaySound( "CALL" )
+	end
 	
-	Delleren:Comm( "GIVE", msgdata, "WHISPER", self.unit )
-	
-	Delleren.Indicator:SetAnimation( "QUERY", "ASKING" ) 
+	Delleren.Indicator:SetAnimation( "QUERY", "ASKING" )
 	
 	if not Delleren.Help.active then
 		
@@ -415,7 +445,7 @@ function Delleren.Query:RequestCD()
 		Delleren.Indicator:SetIcon( request_icon )
 	
 	end
-	
+	 
 	return true 
 end
 
@@ -455,6 +485,7 @@ function Delleren.Query:HandleReadyMessage( name, data )
 				name = name; 
 				id = data.id; 
 				timeout = Delleren.Status:PlayerInTimeout( name );
+				compat  = Delleren.Status:PlayerHasDelleren( name );
 			})
 		
 		if self.manual then

@@ -8,8 +8,8 @@
 
 local Delleren = DellerenAddon
  
-local COMM_PREFIX = "DELLEREN"
-local PROTOCOL_VERSION = 1
+local COMM_PREFIX      = "DELLEREN"
+local PROTOCOL_VERSION = 2
 
 -------------------------------------------------------------------------------		  
 function Delleren:OnInitialize()
@@ -23,6 +23,8 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:OnEnable()
+
+	self.Status:CacheTalents()
 	
 	self:ReMasque()
 	
@@ -34,6 +36,8 @@ function Delleren:OnEnable()
 	
 	self:RegisterEvent( "PLAYER_TALENT_UPDATE", "OnTalentsChanged" )
 	self:RegisterEvent( "GLYPH_ADDED", "OnTalentsChanged" )
+	
+	-- TODO register 
 	
 	self:RegisterComm( "DELLEREN" )
 	
@@ -66,7 +70,7 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:OnTalentsChanged()
-	self.Status:SpellsChanged()
+	self.Status:CacheTalents()
 	self.Status:Send()
 end
 
@@ -297,20 +301,36 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 	
 	local result, msg, data = self:Deserialize( packed_message )
 	if result == false then return end -- bad message
-	if data.tar and UnitGUID("player") ~= data.tar then
-		-- crossrealm whisper and we are not the intended target.
-		return
-	end
 	
 	if not UnitInParty( sender ) then
 		-- malicious message from outside
 		return
 	end
 	
+	if data.pv ~= PROTOCOL_VERSION then
+	
+		-- incompatible protocols!
+		if data.pv > PROTOCOL_VERSION then
+			if not self.warned_protocol_outdated then
+				self.warned_protocol_outdated = true
+				self:Print( "One or more players in your raid are using a newer version of Delleren that isn't compatible with yours." )
+			end
+		end
+		
+		self.Status:SetIncompatible( sender )
+		return
+	end
+	
 	if sender == UnitName( "player" ) then
 		-- ignore mirrored messages, (TODO does this happen?)
 		return
-	end 
+	end
+	
+	if data.tar and UnitGUID("player") ~= data.tar then
+		-- crossrealm whisper and we are not the intended target.
+		return
+	end
+	
 	
 	if msg == "CHECK" then
 		-- player is checking if we have a cd ready
@@ -444,6 +464,8 @@ end
 -- Frame update handler.
 --
 function Delleren:OnFrame()
+	self.Status:PeriodicRefresh()
+	
 	if self.Query.active then self.Query:Update() end
 	if self.Help.active  then self.Help:Update()  end
 	
@@ -486,7 +508,18 @@ end
 
 -------------------------------------------------------------------------------
 local CALL_SPELL_PRESETS = {
-	painsups = { 6940, 33206, 114030, 102342 };
+	painsups      = { 6940, 33206, 114030, 102342 };
+	antimagiczone = { 51052 };
+	ironbark      = { 102342 };
+	sac           = { 6940 };
+	bop           = { 1022 };
+	psup          = { 33206 };
+	smokebomb     = { 76577 };
+	vig           = { 114030 };
+}
+
+-------------------------------------------------------------------------------
+local CALL_SPELL_PRESETS_ITEMS = {
 	jeeves   = { 49040 };
 }
 
@@ -504,8 +537,17 @@ local function PushCallSpell( spells, arg )
 
 	local list = nil
 	
+	local makeitem = false
+	
 	if CALL_SPELL_PRESETS[arg] then
+	
 		list = CALL_SPELL_PRESETS[arg]
+		
+	elseif CALL_SPELL_PRESETS_ITEMS[arg] then
+	
+		list = CALL_SPELL_PRESETS_ITEMS[arg]
+		makeitem = true
+		
 	else
 	
 		local spellid = tonumber( arg )
@@ -523,6 +565,8 @@ local function PushCallSpell( spells, arg )
 			table.insert( spells, spell )
 		end
 	end
+	
+	return makeitem
 end
 
 -------------------------------------------------------------------------------
@@ -564,7 +608,9 @@ function Delleren:CallCommand( args )
 		
 			if mode == "SPELLS" then
 			
-				PushCallSpell( spells, arg )
+				if PushCallSpell( spells, arg ) then
+					item = true
+				end
 				
 			elseif mode == "PLAYERS" then
 			
@@ -623,11 +669,17 @@ function SlashCmdList.DELLEREN( msg )
 	if args[1] ~= nil then args[1] = string.lower( args[1] ) end
 	
 	if args[1] == "call" then
+	
 		Delleren:CallCommand( args ) 
+		
 	elseif args[1] == "config" then
+	
 		Delleren.Config:Open()
+		
 	elseif args[1] == "who" or args[1] == "version" then
+	
 		Delleren:WhoCommand()
+		
 	elseif args[1] == "fuck" then
 		 
 		-- this is a police quest reference

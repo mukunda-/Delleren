@@ -20,8 +20,10 @@ local Delleren = DellerenAddon
 local function TalentSelected( build, index )
 	local row = math.floor( index / 10 )
 	index = index - row * 10
-	local _,_,_,sel,avail = GetTalentInfo( row, index, nil, true, name )
-	return sel and avail
+	return tonumber(string.sub( build, index, 1 )) == index
+	
+--	local _,_,_,sel,avail = GetTalentInfo( row, index, nil, true, name )
+--	return sel and avail
 end
 
 -------------------------------------------------------------------------------
@@ -183,6 +185,68 @@ local GlyphFilter = {
 }
 
 -------------------------------------------------------------------------------
+local SpellMap = {
+}
+
+do
+	for _,c in pairs( SpellData )
+		for _,spec in pairs( c ) do
+			for spellid,spelldata in pairs( spec ) do
+				KnownSpellMap[spellid] = spelldata
+			end
+		end
+	end
+end
+
+-------------------------------------------------------------------------------
 function Delleren.SpellData:GlyphFilter( id )
 	return GlyphFilter[id]
+end
+
+-------------------------------------------------------------------------------
+function Delleren.SpellData:KnownSpell( id )
+	return KnownSpellMap[id]
+end
+
+-------------------------------------------------------------------------------
+-- Returns a list of spells for a class with a spec, talents and glyphs.
+--
+-- @param cls     Unit class filename.
+-- @param spec    Specialization ID.
+-- @param talents Talent build, a string of digits.
+-- @param glyphs  A list of glyphs they know.
+--
+-- @returns A map of spells that they know.
+--          [spellid] = { cd = cd duration, maxcharges = max # of charges }
+--
+function Delleren.SpellData:GetSpells( cls, spec, talents, glyphs )
+	if not SpellData[cls] then return {} end -- Unknown class!
+	
+	local build = {
+		spec    = spec;
+		talents = talents;
+		glyphs  = glyphs
+	}
+	
+	local state = 1
+	
+	local spells = {}
+	
+	for k,v in pairs( SpellData[cls].all or {} ) do
+		
+		if v.mods then
+			for _,mod in ipairs( v.mods ) do
+				mod( v, build )
+			end
+		end
+		
+		local spell = {
+			cd = v.cd or GetSpellBaseCooldown( k );
+			maxcharges = v.charges or 1;
+		}
+		
+		spells[k] = spell
+	end
+	
+	return spells
 end
