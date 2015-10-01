@@ -113,10 +113,11 @@ function CDButton:Clicked( button )
 		return
 	end
 	
+	local buff = Delleren.SpellData:BuffSpell( self.spell )
 	if button == "LeftButton" then
-		Delleren.Query:Start( {self.spell}, false, false, false, nil )
+		Delleren.Query:Start( {self.spell}, false, buff, false, nil )
 	else
-		Delleren.Query:Start( {self.spell}, false, false, true, nil )
+		Delleren.Query:Start( {self.spell}, false, buff, true, nil )
 	end
 end
 

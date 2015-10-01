@@ -9,11 +9,12 @@ local Delleren = DellerenAddon
 local QUERY_WAIT_TIME     = 0.5  -- time to wait for cd responses
 local QUERY_TIMEOUT       = 2.0  -- time to give up query
 local HARD_QUERY_TIMEOUT  = 4.0  -- time for the query to stop even
-                                -- when there are options left!
+                                 -- when there are options left!
+								 
 local HELP_TIMEOUT        = 7.0  -- time to allow user to cast a spell.
 local MANUAL_MENU_TIMEOUT = 15.0 -- timeout for selecting a manual request
-
--- TODO: request priority targets
+local COMPAT_TIMEOUT      = 10.0 -- time to allow non-delleren user
+                                 -- to cast a spell.
 
 -------------------------------------------------------------------------------
 Delleren.Query = {
@@ -26,7 +27,7 @@ Delleren.Query = {
 	list       = {};    -- list of userids that have cds available
 	unit       = nil;   -- name of person we want a cd from 
 	rid        = 0;     -- request id
-	buff       = false; -- if we are requesting a buff
+	buff       = false;   -- if we are requesting a buff
 	manual     = false; -- if this is a manual call
 	ignore_rest= false; -- if the query should no longer accept new options
 	checked    = false; -- if we ran a check
@@ -39,7 +40,7 @@ Delleren.Query = {
 -- @param item    true if we are requesting an item to be used.
 -- @param buff    true if we expect the id to cast a buff on us. false if we
 --                just want them to use the spell or item without caring for
---                the target.
+--                the target. nil to inherit from spell data.
 -- @param manual  Manual call.
 -- @param players Player preference list. Note that this takes over
 --                the table given.
@@ -69,7 +70,7 @@ function Delleren.Query:Start( list, item, buff, manual, players )
 	self.time        = GetTime()
 	self.start_time  = self.time
 	self.requested   = false 
-	self.buff        = buff
+	self.buff_flag   = buff
 	self.list        = {} 
 	self.item        = item or nil
 	self.rid         = math.random( 1, 999999 )
@@ -90,7 +91,7 @@ function Delleren.Query:Start( list, item, buff, manual, players )
 	
 	if not item then
 		for k,spell in ipairs(list) do
-			if Delleren.Status:IsSubbed( spell ) then
+			if Delleren.SpellData:KnownSpell( spell ) then
 				table.insert( instant_list, spell )
 			else
 				table.insert( check_list, spell )
@@ -108,7 +109,6 @@ function Delleren.Query:Start( list, item, buff, manual, players )
 		for name in Delleren:IteratePlayers() do
 			local spell = Delleren.Status:HasSpellReady( name, instant_list )
 			if spell and Delleren:UnitNearby( name ) 
-			   and not Delleren.Status:PingTimeout( name ) 
 			   and not UnitIsDeadOrGhost( name ) 
 			   and UnitIsConnected( name )
 			   and self:PlayerPassesFilter(name) then
@@ -263,8 +263,21 @@ function Delleren.Query:Update()
 			self:UpdateManualRequest()
 		end
 	else
-		if t >= HELP_TIMEOUT then
+	
+		local timeout = self.compat and HELP_TIMEOUT or COMPAT_TIMEOUT
+		
+		if t >= timeout then
 			Delleren.Status:GivePlayerTimeout( self.unit )
+			
+			if not self.compat then
+				-- if a player who doesn't have delleren failed the request
+				-- then set the cd of that spell to half of it's duration
+				--
+				-- we don't actually know if it's available for them.
+				--
+				
+				Delleren.Status:OnSpellUsed( self.unit, self.spell, true )
+			end
 			self:Fail()
 			return
 		end
@@ -398,8 +411,22 @@ function Delleren.Query:RequestCD()
 	self.requested = true
 	self.time      = GetTime()
 	self.spell     = request_data.id
+	self.compat    = Delleren.Status:PlayerHasDelleren( request_data.name )
 	
-	if Delleren.Status:PlayerHasDelleren( request_data.name ) then
+	if not self.item then
+		if Delleren.SpellData:NoBuffSpell( self.spell ) then
+			-- we know this spell can't give a buff, override buff flag.
+			self.buff = false
+		else
+			-- do what the user told us to do.
+			self.buff = self.buff_flag
+		end
+	else
+		-- item buffs are unknown, do what the user told us to do.
+		self.buff  = self.buff_flag
+	end
+	
+	if self.compat then
 		
 		local msgdata = {
 			rid  = self.rid;
@@ -410,17 +437,19 @@ function Delleren.Query:RequestCD()
 		
 		Delleren:Comm( "GIVE", msgdata, "WHISPER", self.unit )
 		Delleren:PlaySound( "CALL" )
+		Delleren.Indicator:SetAnimation( "QUERY", "CALL" )
 	else
 		local spell_name = string.upper( GetSpellInfo( self.spell ) )
 		
-		SendChatMessage( "************************", "WHISPER", nil, self.unit )
-		SendChatMessage( "I need " .. spell_name .. ".", "WHISPER", nil, self.unit )
+		if Delleren.Config.db.profile.calling.whisper then
+			SendChatMessage( "************************", "WHISPER", nil, self.unit )
+			SendChatMessage( "I need " .. spell_name .. ".", "WHISPER", nil, self.unit )
+		end
 		
-		-- todo: different call sound
-		Delleren:PlaySound( "CALL" )
+		Delleren:PlaySound( "MANCALL" )
+		Delleren.Indicator:SetAnimation( "QUERY", "MANCALL" )
 	end
 	
-	Delleren.Indicator:SetAnimation( "QUERY", "ASKING" )
 	
 	if not Delleren.Help.active then
 		

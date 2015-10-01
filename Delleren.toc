@@ -4,7 +4,7 @@
 ## Author: mukunda
 ## SavedVariables: DellerenAddonSaved
 ## OptionalDeps: Masque
-## Version: 1.1.4
+## Version: 1.2.0
 embeds.xml
 
 init.lua
@@ -15,8 +15,10 @@ config.lua
 delleren.lua
 help.lua
 indicator.lua 
+inspect.lua
 query.lua
 sounds.lua
+spelldata.lua
 status.lua
 querylist.lua
 

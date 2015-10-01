@@ -97,11 +97,23 @@ end
 function Delleren.Indicator:UpdateAnimation()
 	local t = GetTime() - self.ani.time
 	
-	if self.ani.state == "ASKING" then
+	if self.ani.state == "CALL" then
+	
 		local r,g,b = ColorLerp( 1,1,1, 1,0.7,0.2, t / 0.25 )
 		self.frame.icon:SetVertexColor( r, g, b, 1 )
 		self.frame:SetAlpha( 1 )
 		self.frame.text:SetTextColor( 1, 1, 1, 1 )
+		self:Desaturate( true )
+		if t >= 1.0 then self.ani.finished = true end
+		
+	elseif self.ani.state == "MANCALL" then
+		local r,g,b = 0.9, 0.2, 0.05
+		
+		r = r + math.sin( GetTime() * 6.28 * 4.5 ) * 0.7
+		r,g,b = ColorLerp( 1,1,1,r,g,b, t / 0.2 )
+		self.frame.icon:SetVertexColor( r, g, b, 1 )
+		self.frame:SetAlpha( 1 )
+		self.frame.text:SetTextColor( 1,1,1,1 )
 		self:Desaturate( true )
 		if t >= 1.0 then self.ani.finished = true end
 		

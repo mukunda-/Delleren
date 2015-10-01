@@ -50,6 +50,10 @@ local DB_DEFAULTS = {
 	
 		locked = false;
 		
+		calling = {	
+			whisper = true;
+		};
+		
 		indicator = {
 			size     = 80;
 			fontsize = 14;
@@ -69,6 +73,11 @@ local DB_DEFAULTS = {
 				CALL = {
 					name    = "Delleren-Call";
 					file    = nil; 
+					enabled = true;
+				};
+				MANCALL = {
+					name    = "Delleren-ManCall";
+					file    = nil;
 					enabled = true;
 				};
 				HELP = {
@@ -118,6 +127,25 @@ local OPTIONS_TABLE = {
 			type = "toggle";
 			set = function( info, val ) Delleren:ToggleFrameLock() end;
 			get = function( info ) return not Delleren.unlocked end;
+		};
+		
+		calling = {
+			name = "Calling";
+			type = "group";
+			args = {
+				whisperdesc = {
+					order = 1;
+					name = "Whispers are used to call for spells from players without Delleren installed. If you disable whispers, you are expected to call for your spell manually (e.g. over voice-chat).";
+					type = "description";
+				};
+				whisper = {
+					order = 2;
+					name = "Enable Whispers";
+					type = "toggle";
+					set = function( info, val ) Delleren.Config:SetCallingWhisper( val ) end;
+					get = function( info ) return Delleren.Config.db.profile.calling.whisper end;
+				};
+			};
 		};
 		
 		indicator = {
@@ -359,8 +387,9 @@ local function InsertSoundOption( key, name, desc, order )
 end
 
 InsertSoundOption( "CALL", "Call:", "Sound to play when making a call.", 10 )
-InsertSoundOption( "HELP", "Help:", "Sound to play when being asked for help.", 20 )
-InsertSoundOption( "FAIL", "Fail:", "Sound to play when something goes wrong.", 30 )
+InsertSoundOption( "MANCALL", "Non-Delleren Call:", "Sound to play when making a call to a user without Delleren.", 20 )
+InsertSoundOption( "HELP", "Help:", "Sound to play when being asked for help.", 30 )
+InsertSoundOption( "FAIL", "Fail:", "Sound to play when something goes wrong.", 40 )
 
 -------------------------------------------------------------------------------
 function Delleren.Config:ResetTrackedSpellOptions()
@@ -670,7 +699,7 @@ function Delleren.Config:TrackingEditorChanged( val )
 			if not duplicate then
 				table.insert( list, {spell=spellid} )
 				
-				if #list >= Delleren.Status.MAX_SUBS then break end
+				--if #list >= Delleren.Status.MAX_SUBS then break end
 			end
 		end
 	end
@@ -682,4 +711,9 @@ function Delleren.Config:TrackingEditorChanged( val )
 	
 	Delleren.Status:UpdateTrackingConfig()
 	Delleren.CDBar:UpdateLayout()
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Config:SetCallingWhisper( val )
+	self.db.profile.calling.whisper = val;
 end

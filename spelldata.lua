@@ -16,11 +16,13 @@ local Delleren = DellerenAddon
 --    buff    = spellid of buff we expect to be cast on us, default = same as spellid, 0 = non-buff ability
 -- }
 
+Delleren.SpellData = {}
+
 -------------------------------------------------------------------------------
 local function TalentSelected( build, index )
 	local row = math.floor( index / 10 )
 	index = index - row * 10
-	return tonumber(string.sub( build, index, 1 )) == index
+	return tonumber(string.sub( build.talents, row, row )) == index
 	
 --	local _,_,_,sel,avail = GetTalentInfo( row, index, nil, true, name )
 --	return sel and avail
@@ -39,12 +41,7 @@ local function ClemencyMod( data, build )
 		data.charges = 1
 	end
 end
-
--------------------------------------------------------------------------------
-local function LifeCocoonMod( data, name ) 
-	-- TODO find life cocoon glyph and set cd
-end
-
+ 
 -------------------------------------------------------------------------------
 local function DevoAuraMod( data, name )
 	-- TODO find devo aura glyph and set cd
@@ -80,12 +77,18 @@ local SpellData = {
 	
 -------------------------------------------------------------------------------
 	["MAGE"] = {
+		all = {
+			[113724] = { talent = 31; buff=0; };       -- Ring of Frost
+		};
 	};
 	
 -------------------------------------------------------------------------------
 	["MONK"] = {
 		all = {
 			[116841] = { talent = 12; };               -- Tiger's Lust
+			[116844] = { talent = 41; };               -- Ring of Peace
+			[119392] = { talent = 42; buff=0; };       -- Charging Ox Wave
+			[119381] = { talent = 43; buff=0; };       -- Leg Sweep
 		};
 		
 		-- mistweaver
@@ -157,8 +160,9 @@ local SpellData = {
 -------------------------------------------------------------------------------
 	["WARRIOR"] = {
 		all = {
-			[114028] = { buff=0; talent = 51; };       -- Mass Spell Reflection
+			[114028] = { talent = 51; buff=0; };       -- Mass Spell Reflection
 			[114030] = { talent = 53; };               -- Vigilance
+			[46968]  = { talent = 42; buff=0; };       -- Shockwave 
 		};
 		
 		-- arms
@@ -189,10 +193,10 @@ local SpellMap = {
 }
 
 do
-	for _,c in pairs( SpellData )
+	for _,c in pairs( SpellData ) do
 		for _,spec in pairs( c ) do
 			for spellid,spelldata in pairs( spec ) do
-				KnownSpellMap[spellid] = spelldata
+				SpellMap[spellid] = spelldata
 			end
 		end
 	end
@@ -205,7 +209,30 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren.SpellData:KnownSpell( id )
-	return KnownSpellMap[id]
+	return SpellMap[id]
+end
+
+-------------------------------------------------------------------------------
+function Delleren.SpellData:NoBuffSpell( id )
+	local a = SpellMap[id]
+	if not a then return nil end
+	return a.buff == 0
+end
+
+-------------------------------------------------------------------------------
+function Delleren.SpellData:BuffSpell( id )
+	local a = SpellMap[id]
+	if not a then return nil end
+	return a.buff ~= 0
+end
+
+-------------------------------------------------------------------------------
+local function ApplySpellMods( data, build )
+	if data.mods then
+		for _,mod in ipairs( data.mods ) do
+			mod( data, build )
+		end
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -225,7 +252,7 @@ function Delleren.SpellData:GetSpells( cls, spec, talents, glyphs )
 	local build = {
 		spec    = spec;
 		talents = talents;
-		glyphs  = glyphs
+		glyphs  = glyphs;
 	}
 	
 	local state = 1
@@ -234,14 +261,22 @@ function Delleren.SpellData:GetSpells( cls, spec, talents, glyphs )
 	
 	for k,v in pairs( SpellData[cls].all or {} ) do
 		
-		if v.mods then
-			for _,mod in ipairs( v.mods ) do
-				mod( v, build )
-			end
-		end
+		ApplySpellMods( v, build )
 		
 		local spell = {
-			cd = v.cd or GetSpellBaseCooldown( k );
+			cd = v.cd or ((GetSpellBaseCooldown( k ) or 0)/1000);
+			maxcharges = v.charges or 1;
+		}
+		
+		spells[k] = spell
+	end
+	
+	for k,v in pairs( SpellData[cls][spec] or {} ) do
+		
+		ApplySpellMods( v, build )
+		
+		local spell = {
+			cd = v.cd or ((GetSpellBaseCooldown( k ) or 0)/1000);
 			maxcharges = v.charges or 1;
 		}
 		

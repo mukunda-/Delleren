@@ -6,9 +6,12 @@
 
 local Delleren = DellerenAddon
 
-local PLAYER_TIMEOUT_LENGTH = 30
+local PLAYER_TIMEOUT_LENGTH = 60
 local PING_TIMEOUT          = 180
 local PING_REFRESH_TIME     = 60
+
+local WAITINSPECT_NEW       = 30
+local INSPECT_AGAIN_DELAY   = 30
 
 -------------------------------------------------------------------------------
 Delleren.Status = {
@@ -16,7 +19,7 @@ Delleren.Status = {
 	-- indexed by player name
 	players = {};
 	
-	-- [[
+	--[[
 	PLAYERS STRUCTURE:
 
 	[playername]
@@ -30,7 +33,8 @@ Delleren.Status = {
 		glyphs   = glyph list
 		timeout  = time when their timeout expires, 
 		          timeout is set when they dont respond to a help request
-		time     = last ping or status time
+		time     = last ping or status time from another player using delleren
+		waitinspect = time to wait until before inspecting them
 		if spec, talents or glyphs changes, then the spells table is rebuilt
 		
 		-- spell table:
@@ -51,7 +55,7 @@ Delleren.Status = {
 	send = {
 		queued = false; -- send operation is queued
 		poll   = false; -- ask for other player status
-	}
+	};
 	
 	lastping    = GetTime();
 	
@@ -66,28 +70,35 @@ Delleren.Status = {
 	
 	prune_time  = GetTime();
 	scan_time   = GetTime();
+	scan_index  = 1;
 }
 
 -------------------------------------------------------------------------------
--- Return player status data, creating a new entry if it doesn't exist.
+-- Return player status data.
 --
--- @param name Name of player.
+-- @param name   Name of player.
+-- @param create Create an entry if they don't exist.
 --
-function Delleren.GetPlayerData( name )
+function Delleren.Status:GetPlayerData( name, create )
 	local p = self.players[name]
-	if not p then
+	if not p and create then
 		p = {
-			loaded  = false;
-			ignore  = false;
-			spec    = 0;
-			talents = "0000000000";
-			glyphs  = {};
-			serial  = 0;
-			name    = name;
+			loaded      = false;
+			ignore      = false;
+			spec        = GetInspectSpecialization( name );
+			talents     = "?";
+			glyphs      = {};
+			serial      = 0;
+			name        = name;
 			
-			spells = {};
-			time   = GetTime()
+			spells      = {};
+			time        = GetTime();
+			waitinspect = GetTime() + WAITINSPECT_NEW;
+			timeout     = 0;
 		}
+		 
+		self:BuildSpellsTable( p )
+		
 		self.players[name] = p
 	end
 	
@@ -105,6 +116,12 @@ local function TablesDiffer( a, b )
 	return false
 end
 
+function Delleren.Status:SetIncompatible( name, data )
+	local p = self:GetPlayerData( name, true )
+	p.protocol = data.pv
+	p.version  = data.v 
+end
+
 -------------------------------------------------------------------------------
 -- Record the status of a player.
 --
@@ -113,16 +130,18 @@ end
 --
 function Delleren.Status:UpdatePlayer( name, data )
  
+
 	-- filter bad or potentially malicious data
 	if not UnitInParty( name ) then return end -- unknown source!
 	if name == UnitName( "player" ) then return end
 	
 	-- convert data into friendly structure
-	local p = self.GetPlayerData( name )
+	local p = self:GetPlayerData( name, true )
 	p.compat  = true
 	p.version = data.v
 	p.time    = GetTime()
 	p.loaded  = true
+	p.protocol = data.pv
 	
 	if p.spec ~= data.s or p.talents ~= data.t
        or TablesDiffer( p.glyphs, data.g ) then
@@ -134,7 +153,7 @@ function Delleren.Status:UpdatePlayer( name, data )
 		self:BuildSpellsTable( p )
 	end
 	
-	if data.poll then
+	if data.p then
 		self:Send()
 	end
 	--self:Refresh( data.poll )
@@ -145,7 +164,7 @@ function Delleren.Status:UpdatePlayerFromInspect( name, data )
 	if not UnitInParty( name ) then return end -- unknown source!
 	if name == UnitName( "player" ) then return end
 	
-	local p = self.GetPlayerData( name )
+	local p = self:GetPlayerData( name, true )
 	
 	if p.spec ~= data.spec or p.talents ~= data.talents 
 	   or p.glyphs ~= data.glyphs then
@@ -270,12 +289,15 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren.Status:CheckPlayer( name ) 
-	local player = self:GetPlayerData( name )
+	local player = self:GetPlayerData( name, true )
 	
 	-- 10 seconds have passed and we haven't received data from the player yet
 	--
-	if not player.loaded and GetTime() > player.time + 10 then
-		Delleren.Inspect:TryStart( name )
+	if not player.loaded and GetTime() > player.waitinspect  
+	   and UnitIsConnected( name ) then
+		if Delleren.Inspect:TryStart( name ) then
+			player.waitinspect = GetTime() + INSPECT_AGAIN_DELAY
+		end
 	end
 end
 
@@ -322,6 +344,22 @@ function Delleren.Status:PeriodicRefresh()
 end
  
 -------------------------------------------------------------------------------
+-- Notify system that a player has changed their talents.
+--
+-- @param name        Name of player.
+-- @param waitinspect Seconds to wait before inspecting them.
+--
+function Delleren.Status:PlayerTalentsChanged( name, waitinspect )
+	local player = self:GetPlayerData( name )
+	if not player then return end
+	
+	if not player.compat then
+		player.loaded = false
+		player.waitinspect = GetTime() + (waitinspect or 0)
+	end
+end
+
+-------------------------------------------------------------------------------
 -- Check if a spell has come off of cooldown and add a charge for it.
 --
 function Delleren.Status:UpdateSpellCooldown( sp )
@@ -346,22 +384,9 @@ end
 -- @param unit  UnitID of player.
 -- @param spell ID of spell used.
 --
-function Delleren.Status:OnSpellUsed( unit, spell )
+function Delleren.Status:OnSpellUsed( unit, spell, half )
 	
-	-- check if we have a raid# unitid if in a raid, or a party# unitid 
-	-- if not in a raid, the same spellcast may trigger multiple events
-	-- with different unitids
-	
-	if ( IsInRaid() and string.find(unit, "raid") 
-	                and not string.find( unit, "target" ))
-					   
-	        or (not IsInRaid() and string.find( unit, "party" )
-                               and not string.find( unit, "target" )) then
-	   
-		unit = Delleren:UnitFullName( unit )
-	else
-		return -- not in party.
-	end 
+	unit = Delleren:UnitFullName( unit )
 	
 	local p = self.players[unit]
 	if not p then return end
@@ -370,12 +395,14 @@ function Delleren.Status:OnSpellUsed( unit, spell )
 	local sp = p.spells[spell]
 	if sp then
 		
-		-- we have data for the spell that they cast
+		-- we are tracking the spell that they cast.
 		
 		if sp.maxcharges == 1 then
 			-- easy non-charge mode
 			sp.charges = 0
 			sp.time = GetTime()
+			
+			if half then sp.time = sp.time - sp.cd/2 end
 		else
 			-- add new spell charges
 			local time = GetTime()
@@ -392,9 +419,10 @@ function Delleren.Status:OnSpellUsed( unit, spell )
 					sp.time = GetTime()
 				end
 			end
+			
+			if half then sp.time = sp.time - sp.cd/2 end
 		end
 	end
-
 end
 
 -------------------------------------------------------------------------------
@@ -564,6 +592,7 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren.Status:GivePlayerTimeout( name )
+	if not self.players[name] then return end
 	self.players[name].timeout = GetTime() + PLAYER_TIMEOUT_LENGTH
 end
 
@@ -579,7 +608,7 @@ end
 function Delleren.Status:CheckPing()
 
 	if GetTime() - self.lastping > PING_REFRESH_TIME 
-	   and not UnitAffectingCombat( "player" ) then
+	        and not UnitAffectingCombat( "player" ) then
 	
 		--[[
 		local data = {
@@ -602,7 +631,7 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren.Status:OnPing( name, data )
-	local p = self:GetPlayerData( name )
+	local p = self:GetPlayerData( name, true )
 	p.time = GetTime()
 	
 	if not p.loaded then 
@@ -612,7 +641,7 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren.Status:SetSpellCooldown( name, spell, time )
-	local p = self.players[name]
+	local p = self:GetPlayerData( name )
 	if not p then return end
 	
 	local sp = p.spells[spell]
@@ -623,17 +652,23 @@ function Delleren.Status:SetSpellCooldown( name, spell, time )
 end
 
 -------------------------------------------------------------------------------
+local function TalentSelected( tier, col, name )
+	local _,_,_,sel,avail = GetTalentInfo( tier, col, GetActiveSpecGroup() )
+	return sel and avail
+end
+
+-------------------------------------------------------------------------------
 function Delleren.Status:CacheTalents()
 	self.myserial = self.myserial + 1
-	self.myspec = GetSpecialization()
+	self.myspec = GetSpecializationInfo(GetSpecialization())
 	self.mytalents = ""
 	
 	for tier = 1,7 do
-		if GetTalentInfo( tier, 1 ) then
+		if TalentSelected( tier, 1 ) then
 			self.mytalents = self.mytalents .. "1"
-		elseif GetTalentInfo( tier, 2 ) then
+		elseif TalentSelected( tier, 2 ) then
 			self.mytalents = self.mytalents .. "2"
-		elseif GetTalentInfo( tier, 3 ) then
+		elseif TalentSelected( tier, 3 ) then
 			self.mytalents = self.mytalents .. "3"
 		else
 			self.mytalents = self.mytalents .. "0"

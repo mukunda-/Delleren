@@ -10,6 +10,7 @@
 local Delleren = DellerenAddon
 
 local INSPECT_TIMEOUT = 5
+local INSPECT_THROTTLE = 2
 
 -------------------------------------------------------------------------------
 Delleren.Inspect = {
@@ -17,6 +18,7 @@ Delleren.Inspect = {
 	name = nil;
 	guid = nil;
 	timeout_timer = nil;
+	next_inspect = 0;
 }
 
 -------------------------------------------------------------------------------
@@ -28,9 +30,14 @@ function Delleren.Inspect:TryStart( name )
 	
 	if self.busy then return end
 	
+	if GetTime() < self.next_inspect then return end
+	self.next_inspect = GetTime() + INSPECT_THROTTLE
+	
+	if not CanInspect( name ) then return end
+	
 	self.busy = true
 	self.name = name
-	
+	 
 	NotifyInspect( name )
 	
 	self.timeout_timer = Delleren:ScheduleTimer( 
@@ -64,24 +71,41 @@ function Delleren.Inspect:OnInspectReady( guid )
 end
 
 -------------------------------------------------------------------------------
+local function InspectTalentSelected( tier, col, name )
+	local _,_,_,sel,avail = GetTalentInfo( tier, col, nil, true, name )
+	return sel and avail
+end
+
+-------------------------------------------------------------------------------
 function Delleren.Inspect:GetPlayerInfo( name )
+
+	if Delleren.Status:PlayerHasDelleren( name ) then
+		-- player has delleren; use more reliable methods.
+		return
+	end
+
 	local data = {
 		spec = GetInspectSpecialization( name );
 		talents = "";
 		glyphs = {};
 	}
 	
-	for tier = 1,7 do
-		if GetTalentInfo( tier, 1, nil, true, name ) then
-			data.talents = data.talents .. "1"
-		elseif GetTalentInfo( tier, 2, nil, true, name ) then
-			data.talents = data.talents .. "2"
-		elseif GetTalentInfo( tier, 3, nil, true, name ) then
-			data.talents = data.talents .. "3"
-		else
-			data.talents = data.talents .. "0"
-		end
-	end 
+	if GetTalentInfo( 1, 1, nil, true, name ) == nil then
+		data.talents = "?";
+	else 
+		for tier = 1,7 do
+			
+			if InspectTalentSelected( tier, 1, name ) then
+				data.talents = data.talents .. "1"
+			elseif InspectTalentSelected( tier, 2, name ) then
+				data.talents = data.talents .. "2"
+			elseif InspectTalentSelected( tier, 3, name ) then
+				data.talents = data.talents .. "3"
+			else
+				data.talents = data.talents .. "0"
+			end
+		end 
+	end
 	
 	for g = 1,NUM_GLYPH_SLOTS do
 		local enabled, _, _, spellid = GetGlyphSocketInfo( g, nil, true, name )
@@ -91,8 +115,8 @@ function Delleren.Inspect:GetPlayerInfo( name )
 		end
 	end
 	
-	table.sort( data.glyphs )
+	table.sort( data.glyphs ) 
 	
 	-- Do something with it.
-	Delleren.Status:UpdatePlayerFromInspect( data )
+	Delleren.Status:UpdatePlayerFromInspect( name, data )
 end

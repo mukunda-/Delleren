@@ -1,1 +1,6 @@
+# release workspace
 release
+
+# sound forge shit
+sounds/*.sfk
+sounds/*.sfl

@@ -34,11 +34,12 @@ function Delleren:OnEnable()
 						"OnUnitSpellcastSucceeded" )
 	self:RegisterEvent( "GROUP_JOINED", "OnGroupJoined" )
 	
-	self:RegisterEvent( "PLAYER_TALENT_UPDATE", "OnTalentsChanged" )
-	self:RegisterEvent( "GLYPH_ADDED", "OnTalentsChanged" )
-	
-	-- TODO register 
-	
+	self:RegisterEvent( "PLAYER_TALENT_UPDATE", "OnMyTalentsChanged" )
+	self:RegisterEvent( "GLYPH_ADDED", "OnMyTalentsChanged" )
+	self:RegisterEvent( "PLAYER_SPECIALIZATION_CHANGED", 
+	                    "OnPlayerSpecializationChanged" )
+	self:RegisterEvent( "INSPECT_READY", "OnInspectReady" )
+	 
 	self:RegisterComm( "DELLEREN" )
 	
 	self:Print( "Version: " .. self.version )
@@ -69,24 +70,65 @@ function Delleren:OnGroupJoined()
 end
 
 -------------------------------------------------------------------------------
-function Delleren:OnTalentsChanged()
+function Delleren:OnInspectReady( event, guid )
+	self.Inspect:OnInspectReady( guid )
+end
+
+-------------------------------------------------------------------------------
+function Delleren:OnMyTalentsChanged()
 	self.Status:CacheTalents()
 	self.Status:Send()
 end
 
 -------------------------------------------------------------------------------
+function Delleren:OnPlayerSpecializationChanged( event, player )
+	self.Status:PlayerTalentsChanged( self:UnitFullName(player) )
+end
+
+-------------------------------------------------------------------------------
+local RAID_UNIT_IDS = {}
+for i = 1,40 do RAID_UNIT_IDS["raid" .. i] = i end
+
+-------------------------------------------------------------------------------
+local PARTY_UNIT_IDS = {}
+for i = 1,10 do PARTY_UNIT_IDS["party" .. i] = i end
+
+-------------------------------------------------------------------------------
+function Delleren:IsPartyOrRaidUnit( unit )
+	if (IsInRaid() and RAID_UNIT_IDS[unit])
+	        or (not IsInRaid() and PARTY_UNIT_IDS[unit]) then
+		return true
+	end
+	return nil
+end
+
+-------------------------------------------------------------------------------
 function Delleren:OnUnitSpellcastSucceeded( event, unitID, spell, rank, 
-												 lineID, spellID )
-	self.Status:OnSpellUsed( unitID, spellID )
+											lineID, spellID )
 	
-	if self.Query.active and not self.Query.buff 
-	   and UnitGUID( unitID ) == UnitGUID( self.Query.unit ) then
+	-- check if we have a raid# unitid if in a raid, or a party# unitid
+	-- if not in a raid, the same spellcast may trigger multiple events
+	-- with different unitids
+	--
+
+	if self:IsPartyOrRaidUnit( unitID ) then
 	
-		if (not self.Query.item and spellID == self.Query.spell) or
-		   (self.Query.item and spell == GetItemSpell( self.Query.spell )) then
-			
-			self.Indicator:SetAnimation( "QUERY", "SUCCESS" )
-			self.Query.active = false
+		self.Status:OnSpellUsed( unitID, spellID )
+		
+		-- remove talent or remove glyph
+		if spellID == 113873 or spellID == 111621 then
+			self.Status:PlayerTalentsChanged( self:UnitFullName(unitID), 10 )
+		end
+		
+		if self.Query.active and not self.Query.buff 
+		   and UnitGUID( unitID ) == UnitGUID( self.Query.unit ) then
+		
+			if (not self.Query.item and spellID == self.Query.spell) or
+			   (self.Query.item and spell == GetItemSpell( self.Query.spell )) then
+				
+				self.Indicator:SetAnimation( "QUERY", "SUCCESS" )
+				self.Query.active = false
+			end
 		end
 	end
 	
@@ -94,6 +136,7 @@ function Delleren:OnUnitSpellcastSucceeded( event, unitID, spell, rank,
 	   
 		if (not self.Help.item and spellID == self.Help.spell) or
 		   (self.Help.item and spell == GetItemSpell( self.Help.spell )) then
+		   
 			self.Indicator:SetAnimation( "HELP", "SUCCESS" )
 			self.Help.active = false
 		end
@@ -208,7 +251,7 @@ function Delleren:LockFrames()
 	self.Indicator:DisableDragging()
 	self.CDBar:Lock()
 	
-	LibStub("AceConfigRegistry-3.0"):NotifyChange("Delleren")
+	LibStub("AceConfigRegistry-3.0"):NotifyChange( "Delleren" )
 end
  
 -------------------------------------------------------------------------------
@@ -222,6 +265,8 @@ end
 --
 local function UnitDistance( unit )
 	local y,x = UnitPosition( unit )
+	y = y or 999999
+	x = x or 999999
 	local my,mx = UnitPosition( "player" )
 	y,x = y - my, x - mx
 	local d = x*x + y*y
@@ -236,7 +281,12 @@ end
 -------------------------------------------------------------------------------
 function Delleren:GetSpellReadyTime( spell, item )
 	if not item then
-		if IsSpellKnown( spell ) then
+		--if IsSpellKnown( spell ) then
+		
+		-- IsSpellKnown fails for certain talents
+		-- workaround http://forums.wowace.com/showthread.php?t=20184
+		--
+		if GetSpellInfo( GetSpellInfo( spell )) then
 			local charges = GetSpellCharges( spell ) 
 			if charges ~= nil and charges >= 1 then return 0 end
 			
@@ -317,7 +367,10 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 			end
 		end
 		
-		self.Status:SetIncompatible( sender )
+		if msg == "STATUS" then
+			self.Status:SetIncompatible( sender, data )
+		end
+		
 		return
 	end
 	
@@ -454,7 +507,7 @@ function Delleren:DeclineCD( target, rid, spell )
 	
 	if spell then
 		local time = Delleren:GetSpellReadyTime( spell, false )
-		if time >= 3 then data.time = time end
+		if time ~= nil and time >= 3 then data.time = time end
 	end
 	
 	self:Comm( "NO", data, "WHISPER", target )
@@ -509,12 +562,12 @@ end
 -------------------------------------------------------------------------------
 local CALL_SPELL_PRESETS = {
 	painsups      = { 6940, 33206, 114030, 102342 };
-	antimagiczone = { 51052 };
+	antimagiczone = { 51052  };
 	ironbark      = { 102342 };
-	sac           = { 6940 };
-	bop           = { 1022 };
-	psup          = { 33206 };
-	smokebomb     = { 76577 };
+	sac           = { 6940   };
+	bop           = { 1022   };
+	psup          = { 33206  };
+	smokebomb     = { 76577  };
 	vig           = { 114030 };
 }
 
@@ -638,21 +691,32 @@ function Delleren:WhoCommand()
 	local count = 0
 	
 	for player in self:IteratePlayers() do
-		if self.Status.players[player] then
-			players_with[player] = data.version or "???"
+		local data = self.Status.players[player]
+		 
+		if data then
+			
+			if data.compat then
+				table.insert( players_with, data.name .. ": |cff00ff00" .. data.version .. "|r" )
+			else
+				if data.version then
+					table.insert( players_without, data.name .. ": |cff900f90" .. data.version .. " (Incompatible)|r" )
+				else
+					table.insert( players_without, data.name .. ": |cffff0000Not installed.|r" )
+				end
+				
+			end
 		else
-			players_without[player] = true
-		end
-		
+			table.insert( players_without, data.name .. ": |cff808080Unknown.|r" )
+		end	
 		count = count + 1
 	end
 	
-	for k,v in pairs( players_with ) do
-		Delleren:Print( k .. ": |cff00ff00" .. v .. "|r" )
+	for _,v in pairs( players_with ) do
+		Delleren:Print( v )
 	end
 	
-	for k,v in pairs( players_without ) do
-		Delleren:Print( k .. ": |cffff0000Not installed.|r" )
+	for _,v in pairs( players_without ) do
+		Delleren:Print( v )
 	end
 end
 
@@ -720,6 +784,8 @@ end
 -------------------------------------------------------------------------------
 -- Iterates through unit IDs of your party or raid, excluding the player
 --
+-- Note that the iterator is not valid across frames.
+--
 function Delleren:IteratePlayers()
 	local raid   = IsInRaid()
 	local index  = 0
@@ -729,12 +795,12 @@ function Delleren:IteratePlayers()
 		
 		while true do
 			index = index + 1
-			if (raid and index > 40) or (not raid and index > 4) then 
-				return nil 
+			local unit = (raid and "raid" or "party") .. index
+			if not UnitExists( unit ) then
+				return nil
 			end
 			
-			local unit = (raid and "raid" or "party") .. index
-			if UnitExists(unit) and UnitGUID( unit ) ~= player then
+			if UnitGUID( unit ) ~= player then
 				return self:UnitFullName(unit)
 			end
 		end
