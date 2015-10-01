@@ -32,6 +32,11 @@ with the intended target's GUID. This is for cross-realm compatibility.
   
 "Spells" means either actual spells or item effects.
 
+
+sent with all {
+	pv = protocol version
+}
+
 CHECK (RAID) - Check for spells.
 {
 	rid  = <request_id>
@@ -63,7 +68,7 @@ NO (WHISPER) - Decline a cd request.
 	time = if this is set, the cd was on cooldown and this is the number of seconds remaining until its available
 }
 
-STATUS (RAID) - Update raid with status
+(OLD) STATUS (RAID) - Update raid with status 
 {
 	cds = { -- available CDs
 		
@@ -87,14 +92,20 @@ STATUS (RAID) - Update raid with status
 	poll = true if we want everyone to send a status message
 }
 
-PING (RAID)
+STATUS (RAID) - Update raid with status
 {
-	-- an empty message that refreshes a player's ping time and gives serial numbers
-	
-	spellserial = serial number that changes if the player changes their spell list
-	subserial   = serial number that changes if the player changes their sub list
-	
-	ver = delleren addon version
+	z = talents serial number
+	s = spec ID
+	t = talent string, currently 7 digits of 1-3 representing their build
+	g = list of glyphs
+	p = poll, true if we want everyone to send a status message
+	v = delleren addon version
+}
+
+PING (RAID)
+{ 
+	z = serial number that changes if the player changes their talents 
+	v = delleren addon version
 }
 
 spells that are "subscribed" allow players to access them faster by directly 
@@ -120,7 +131,9 @@ as to prevent abuse and possibly combine some future status update requests into
 
 
 indicator colors:
- blue       : asking for cd               initialize sound
+ blue       : finding a cd               initialize sound
+ yellow     : asking for cd
+ red        : compat asking for cd
  green+fade : cd received
  red+fade   : failed to get a cd          fail sound
 ---
@@ -151,3 +164,11 @@ and only from unlisted players if there is a * present ie
 -e causes the command to only work during a certain encounter (with the given id)
    multiple call commands can be put into a single macro, but only one command can be executed at a time
    
+   
+ ------------
+ 
+how to detect talent changes:
+
+PLAYER_SPECIALIZATION_CHANGED event
+113873 - talent removed spell
+111621 - glyph removal spell
