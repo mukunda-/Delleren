@@ -3,7 +3,7 @@
 
 #### User's Manual 
 
-Last Updated 1:45 AM 9/30/2015
+Last Updated 11:00 PM 10/1/2015
 
 -----
 Delleren is an addon that simplifies the process of identifying and calling for spells from other players in your raid. Both you and the player you want to call for CDs must have Delleren installed. For optimal results, your entire raid should have Delleren installed.
@@ -24,6 +24,7 @@ Type `/delleren config` in your chat window to open the Delleren configuration p
 
 Configuration sections:
 
+  - Calling: Options for when making calls.
   - CD Bar: Options for the CD bar.
   - Indicator: Options to style the main indicator.
   - Profiles: Profile creation and loading.
@@ -41,7 +42,9 @@ The "call" command is used to call for CDs from other players. It's usage is:
 
 There are also a few presets listed below that you can use to populate your spell list. (Listed further below.)
 
-If you call for spells that are being "tracked" (see Tracking) then the call is instant and doesn't have to wait for responses from the raid first.
+If the person you are calling has Delleren installed, then an indicator will appear on their screen telling them to give you a CD, and a yellow indicator will appear on your screen while you wait for them. If they don't have the addon installed, then Delleren will whisper them to give you the CD instead, and a flashing-red indicator will appear on your screen; it will also make a unique sound. It's recommended that you also call out to them with voice-chat if they don't have Delleren installed, because it's easy to miss whispers during combat.
+
+Delleren contains a small database of useful spells that you can call for. These are called tracked spells. If you call for a tracked spell, then the picking of a target is instant, otherwise, Delleren will ask the raid if they have the spell available before calling them. To make a non-tracked call, the people that may provide the spell or item must have Delleren installed.
 
 ### Options:
 
@@ -114,20 +117,41 @@ Call for a defensive CD from any healer.
 Spell presets may be used along with spell IDs, the current ones are:
 
  - `painsups` - Hand of Sacrifice, Pain Suppression, Vigilance, and Ironbark
+ - `antimagiczone` - Anti-Magic Zone
+ - `ironbark` - Ironbark
+ - `sac` - Hand of Sacrifice
+ - `bop` - Hand of Protection
+ - `psup` - Pain Suppression
+ - `smokebomb` - Smoke Bomb
+ - `vig` - Vigilance
  - `jeeves` - Jeeves (item)
 
 -----
-## Indicator
+## Indicator States
 
-The Delleren Indicator is easy to understand. If it's flashing and making noise, that means you need to cast the spell that's shown on the player that's shown. You have around seven seconds to do so.
+The Delleren Indicator shows the status of a call or request. 
+
+ - Flashing Blue: Asking the raid for data.
+ - Flashing Red: Calling a player without Delleren. The callee and spell name will be shown. Telling them via voice-chat is recommended.
+ - Yellow: Calling a player with Delleren. The callee and spell name will be shown. Voice-chat should be unecessary in this case.
+ - Flashing Purple: Being called for a spell. The spell name and who is calling will be shown.
+ - Green Fade: Successful operation.
+ - Red Fade: Failed operation.
 
 -----
-## Tracking/CD Bar
+## Query Notes
 
-Delleren provides a simple cooldown tracking interface that allows you to easily see if certain desired spells are available in your raid via the CD Bar. The CD Bar can be toggled on or off in the configuration panel. Disabling the CD Bar will increase performance slightly.
+When calling a player with Delleren, they have 7 seconds to respond to the request. If they don't have Delleren, they have 10 seconds to respond. If they don't respond in time, your indicator will show a failed-state, and the player in question will be placed in "timeout".
 
-If you call for a tracked spell, the query system already knows who has the spell ready and reacts faster. These are called instant-queries.
+When a player is in timeout, they will not be called for another CD unless they are the only option remaining, in which case they will be tried again for their CD.
+
+Delleren handles call-collisions. If a target has Delleren installed and receives two calls at once, then they will deny one of them, and the denied caller will automatically continue calling from someone else. If they don't have Delleren installed, the call will simply fail for the person that doesn't receive the CD, and they will have to make another call if they still need a CD.
+
+-----
+## CD Bar
+
+Delleren provides a simple cooldown tracking interface that allows you to easily see if certain desired spells are available in your raid via the CD Bar. The CD Bar can be toggled on or off in the configuration panel. Disabling the CD Bar will increase performance slightly. 
 
 The buttons on the CD Bar may be clicked to call for the corresponding spells. Left-click makes an auto-query. Right-click makes a manual-query, so a menu will be shown, listing who has the spell ready.
 
-Which spells are tracked is controlled in the configuration panel under Tracked Spells. There is an edit box in which you can list upto 16 spell IDs to track. There is also a tool underneath the edit box to help you find Spell IDs from spell names.
+Which spells are tracked is controlled in the configuration panel under Tracked Spells. There is an edit box in which you can list spell IDs to track. There is also a tool underneath the edit box to help you find Spell IDs from spell names. Currently, the spells you want to track must be defined already in Delleren's spell database. Defining more spells is not supported yet.
