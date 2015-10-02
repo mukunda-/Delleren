@@ -82,7 +82,9 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:OnPlayerSpecializationChanged( event, player )
-	self.Status:PlayerTalentsChanged( self:UnitFullName(player) )
+	if player ~= nil and player ~= "player" then
+		self.Status:PlayerTalentsChanged( self:UnitFullName(player) )
+	end
 end
 
 -------------------------------------------------------------------------------
