@@ -84,7 +84,7 @@ function Delleren.Status:GetPlayerData( name, create )
 	if not p and create then
 		p = {
 			loaded      = false;
-			ignore      = false;
+			ignore      = Delleren.Ignore.ignored[name];
 			spec        = GetInspectSpecialization( name );
 			talents     = "?";
 			glyphs      = {};
@@ -687,4 +687,11 @@ function Delleren.Status:CacheTalents()
 	
 	table.sort( self.myglyphs )
 	
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Status:CopyIgnore( player )
+	local p = self:GetPlayerData( player )
+	if not p then return end
+	p.ignore = Delleren.Ignore:IsIgnored( player )
 end

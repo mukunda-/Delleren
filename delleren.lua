@@ -44,13 +44,16 @@ function Delleren:OnEnable()
 	
 	self:Print( "Version: " .. self.version )
 	
-	if IsInGroup() then
-		-- exchange status with party
-		
-		-- add a longer delay to let shit load
-		self:ScheduleTimer( function() Delleren.Status:Send(true) end, 10 )
-		
-	end
+	Delleren.Ignore:Load()
+				
+	self:ScheduleTimer( 
+		function() 
+			if IsInGroup() then
+				Delleren.Status:Send(true) 
+			else
+				Delleren.Ignore:Reset()
+			end
+		end, 10 )
 	
 	self.update_dummy_frame:SetScript( "OnUpdate", 
 							  function() Delleren:OnFrame() end )
@@ -65,7 +68,6 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:OnGroupJoined()
-	
 	self.Status:NewGroup()
 end
 
@@ -737,6 +739,10 @@ function SlashCmdList.DELLEREN( msg )
 	if args[1] == "call" then
 	
 		Delleren:CallCommand( args ) 
+	
+	elseif args[1] == "ignore" then
+	
+		Delleren.Ignore:OpenPanel()
 		
 	elseif args[1] == "config" then
 	
@@ -753,10 +759,11 @@ function SlashCmdList.DELLEREN( msg )
 		
 	else
 		
-		Delleren:Print( "Command listing:" ) 
+		Delleren:Print( "Command listing:" )
 		Delleren:Print( "  /delleren config - Open configuration."  )
-		Delleren:Print( "  /delleren call - Call for a cd. (See User's Manual.)" ) 
-		Delleren:Print( "  /delleren who - List player versions." ) 
+		Delleren:Print( "  /delleren call - Call for a cd. (See User's Manual.)" )
+		Delleren:Print( "  /delleren who - List player versions." )
+		Delleren:Print( "  /delleren ignore - Open ignore panel." )
 	
 	end
 	  

@@ -509,6 +509,11 @@ function Delleren.Query:HandleReadyMessage( name, data )
 			return
 		end
 		
+		if Delleren.Ignore:IsIgnored( name ) then
+			-- player is ignored
+			return
+		end
+		
 		table.insert( self.list, 
 			{ 
 				name = name; 

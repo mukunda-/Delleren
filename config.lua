@@ -41,11 +41,15 @@ Delleren.Config = {
 
 -------------------------------------------------------------------------------
 local DB_DEFAULTS = {
-
+	
 	global = {
 		version = nil;
 	};
-
+	
+	char = {
+		ignored = {};
+	};
+	
 	profile = {
 	
 		locked = false;

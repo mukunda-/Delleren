@@ -4,7 +4,7 @@
 -- See LICENSE-DELLEREN.TXT
 -------------------------------------------------------------------------------
 
-local VERSION = "1.2.1"
+local VERSION = "1.3.0"
 
 -------------------------------------------------------------------------------
 DellerenAddon = LibStub("AceAddon-3.0"):NewAddon( "Delleren", 
@@ -14,7 +14,7 @@ DellerenAddon = LibStub("AceAddon-3.0"):NewAddon( "Delleren",
 local Delleren = DellerenAddon
 
 -------------------------------------------------------------------------------
-Delleren.version = VERSION
+Delleren.version  = VERSION
 Delleren.unlocked = false
 
 -------------------------------------------------------------------------------
@@ -31,9 +31,12 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:Setup()
+	self.MinimapButton:Init()
 	self:InitMasque()
 	
 	self.Indicator:Init()
 	self.CDBar:Init()
 	self.QueryList:Init()
+	
+	
 end

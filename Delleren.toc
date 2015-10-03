@@ -14,8 +14,10 @@ cdbutton.lua
 config.lua
 delleren.lua
 help.lua
+ignore.lua
 indicator.lua 
 inspect.lua
+minimapbutton.lua
 query.lua
 sounds.lua
 spelldata.lua

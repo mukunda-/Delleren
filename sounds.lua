@@ -12,6 +12,7 @@ SharedMedia:Register( "sound", "Delleren-Call", "Interface\\Addons\\Delleren\\so
 SharedMedia:Register( "sound", "Delleren-ManCall", "Interface\\Addons\\Delleren\\sounds\\mancall.ogg"  )
 SharedMedia:Register( "sound", "Delleren-Help", "Interface\\Addons\\Delleren\\sounds\\help.ogg" )
 SharedMedia:Register( "sound", "Delleren-Fail", "Interface\\Addons\\Delleren\\sounds\\fail.ogg" )
+SharedMedia:Register( "sound", "Delleren-Good", "Interface\\Addons\\Delleren\\sounds\\good.ogg" )
 
 -------------------------------------------------------------------------------
 function Delleren:PlaySound( sound )

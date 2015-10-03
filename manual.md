@@ -3,10 +3,10 @@
 
 #### User's Manual 
 
-Last Updated 11:00 PM 10/1/2015
+Last Updated 3:56 PM 10/2/2015
 
 -----
-Delleren is an addon that simplifies the process of identifying and calling for spells from other players in your raid. Both you and the player you want to call for CDs must have Delleren installed. For optimal results, your entire raid should have Delleren installed.
+Delleren is an addon that simplifies the process of identifying and calling for spells from other players in your raid. For optimal results, your entire raid should have Delleren installed.
 
 -----
 ## Quick Start
@@ -155,3 +155,12 @@ Delleren provides a simple cooldown tracking interface that allows you to easily
 The buttons on the CD Bar may be clicked to call for the corresponding spells. Left-click makes an auto-query. Right-click makes a manual-query, so a menu will be shown, listing who has the spell ready.
 
 Which spells are tracked is controlled in the configuration panel under Tracked Spells. There is an edit box in which you can list spell IDs to track. There is also a tool underneath the edit box to help you find Spell IDs from spell names. Currently, the spells you want to track must be defined already in Delleren's spell database. Defining more spells is not supported yet.
+
+The buttons change visual states according to the situation. Grayed-out/disabled means that all of the people who can provide the spell are dead. The buttons turn red when all of the players who can give the spell are out of range. A cooldown overlay is only shown when all players have the spell on CD, otherwise, a normal button will be shown, with a "stacks" number showing how many charges of the spell are ready to be used, if more than one.
+
+-----
+## Player Ignore
+
+You can disable using spells from certain players in your party or raid using the ignore feature. Type `/delleren ignore` to bring up the ignore menu and click on the player names to toggle their ignored state.
+
+If you want to ignore incoming calls from a player (e.g. if they are abusing the addon and spamming calls for no reason), you can ignore them the same way you ignore their chat.
