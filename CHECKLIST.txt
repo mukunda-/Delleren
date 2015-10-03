@@ -1,0 +1,8 @@
+Bump version in init.lua
+Copy version to Delleren.toc
+Make sure there aren't debug prints!
+Run package.bat
+
+Manual:
+Update timestamp.
+Copy to curseforge.

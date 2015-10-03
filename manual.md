@@ -3,7 +3,7 @@
 
 #### User's Manual 
 
-Last Updated 3:56 PM 10/2/2015
+Last Updated 11:36 PM 10/2/2015
 
 -----
 Delleren is an addon that simplifies the process of identifying and calling for spells from other players in your raid. For optimal results, your entire raid should have Delleren installed.
