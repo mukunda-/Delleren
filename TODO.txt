@@ -1,9 +1,13 @@
+
+custom events for calling, for unitframe addons to use for highlighting help targets
+separate config panel into a load-on-demand addon			
+
+----------------------------------
 spell data table		v
 protocol versioning		v
 compatibility calling		v
-custom events for calling, for unitframe addons to use for highlighting help targets
-
-minimap icon			v (needs fallback if they dont have ldb compatible plugin?)
-player ignore panel				v
-tracking editor use internal database
-separate config panel into a load-on-demand addon
+player ignore panel		v
+minimap icon			v
+tracking editor - use internal database	 v
+ignored player sorting	v
+localization				v	
