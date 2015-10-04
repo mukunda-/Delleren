@@ -3,7 +3,7 @@
 
 #### User's Manual 
 
-Last Updated 6:54 PM 10/3/2015
+Last Updated 10:47 AM 10/4/2015
 
 -----
 Delleren is an addon that simplifies the process of identifying and calling for spells from other players in your raid. For optimal results, your entire raid should have Delleren installed.
@@ -135,9 +135,9 @@ Spell presets may be used along with spell IDs, the current ones are:
 
 The Delleren Indicator shows the status of a call or request. 
 
- - Flashing Blue: Asking the raid for data.
+ - Flashing Blue: Asking the raid for data to populate a query list.
  - Flashing Red: Calling a player without Delleren. The callee and spell name will be shown. Telling them via voice-chat is recommended.
- - Yellow: Calling a player with Delleren. The callee and spell name will be shown. Voice-chat should be unecessary in this case.
+ - Yellow: Calling a player with Delleren. The callee and spell name will be shown. Voice-chat should be unnecessary in this case.
  - Flashing Purple: Being called for a spell. The spell name and who is calling will be shown.
  - Green Fade: Successful operation.
  - Red Fade: Failed operation.

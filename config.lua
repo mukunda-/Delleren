@@ -56,7 +56,8 @@ local DB_DEFAULTS = {
 		locked = false;
 		
 		calling = {	
-			whisper = true;
+			whisper  = true;
+			localize = true;
 		};
 		
 		indicator = {
@@ -161,6 +162,18 @@ local OPTIONS_TABLE = {
 					type = "toggle";
 					set = function( info, val ) Delleren.Config:SetCallingWhisper( val ) end;
 					get = function( info ) return Delleren.Config.db.profile.calling.whisper end;
+				};
+				localizedesc = {
+					order = 3;
+					name = L["Localize Whisper Description"];
+					type = "description";
+				};
+				localize = {
+					order = 4;
+					name = L["Localize Whispers"];
+					type = "toggle";
+					set = function( info, val ) Delleren.Config.db.profile.calling.localize = val end;
+					get = function( info ) return Delleren.Config.db.profile.calling.localize end;
 				};
 			};
 		};
@@ -698,12 +711,18 @@ function Delleren.Config:ResetTrackingEditorText()
 end
 
 -------------------------------------------------------------------------------
+local function trim1(s)
+	return (s:gsub("^%s*(.-)%s*$", "%1"))
+end
+
+-------------------------------------------------------------------------------
 function Delleren.Config:TrackingEditorChanged( val )
 	self.tracking_editor_text = val
 	
 	local list = {}
 	
 	for word in string.gmatch( val, "[^\n]+" ) do
+		word = trim1(word)
 		local spellid = tonumber(word)
 		if not spellid then
 			spellid = Delleren.SpellData:IDFromName( word )

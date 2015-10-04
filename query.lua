@@ -445,8 +445,13 @@ function Delleren.Query:RequestCD()
 		local spell_name = string.upper( GetSpellInfo( self.spell ) )
 		
 		if Delleren.Config.db.profile.calling.whisper then
-			SendChatMessage( "************************", "WHISPER", nil, self.unit )
-			SendChatMessage( L( "I need {1}.", spell_name ), "WHISPER", nil, self.unit )
+			if Delleren.Config.db.profile.calling.localize then
+				SendChatMessage( "************************", "WHISPER", nil, self.unit )
+				SendChatMessage( L( "I need {1}.", spell_name ), "WHISPER", nil, self.unit )
+			else
+				SendChatMessage( "************************", "WHISPER", nil, self.unit )
+				SendChatMessage( "I need " .. spell_name .. ".", "WHISPER", nil, self.unit )
+			end
 		end
 		
 		Delleren:PlaySound( "MANCALL" )

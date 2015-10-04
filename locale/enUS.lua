@@ -48,6 +48,8 @@ setmetatable( L, {
 --L["Calling"]
 L["Whisper Option Description"] = "Whispers are used to call for spells from players without Delleren installed. If you disable whispers, you are expected to call for your spell manually (e.g. over voice-chat)."
 --L["Enable Whispers"]
+L["Localize Whisper Description"] = "Disable localize whispers to always have whispers sent in English rather than based on your locale. This is recommended if you don't personally speak english but often play with players that do.";
+--L["Localize Whispers"]
 
 --L["Indicator"]
 --L["Frame Size"]
