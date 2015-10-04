@@ -20,7 +20,7 @@ And use that macro to call for a defensive CD. Reading the rest of the manual is
 -----
 ## Configuration
 
-Type `/delleren config` in your chat window to open the Delleren configuration panel.
+Right-click the minimap icon and select "Open Configuration" to open the Delleren configuration panel. You can also type `/delleren config`.
 
 Configuration sections:
 
@@ -165,6 +165,6 @@ The buttons change visual states according to the situation. Grayed-out/disabled
 -----
 ## Player Ignore
 
-You can disable using spells from certain players in your party or raid using the ignore feature. Type `/delleren ignore` to bring up the ignore menu and click on the player names to toggle their ignored state.
+You can disable using spells from certain players in your party or raid using the ignore feature. Right-click the minimap icon and select "Open Ignore Panel" or type `/delleren ignore` to bring up the ignore panel and click on the player names to toggle their ignored state.
 
 If you want to ignore incoming calls from a player (e.g. if they are abusing the addon and spamming calls for no reason), you can ignore them the same way you ignore their chat.

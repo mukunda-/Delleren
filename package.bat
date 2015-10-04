@@ -4,7 +4,8 @@
 @mkdir release
 @mkdir release\Delleren
 xcopy /Y /S Libs release\Delleren\Libs\
-xcopy /Y /S sounds release\Delleren\sounds\
+xcopy /Y /S locale release\Delleren\locale\
+xcopy /Y /S sounds\*.ogg release\Delleren\sounds\
 xcopy /Y *.lua release\Delleren\
 xcopy /Y *.toc release\Delleren\
 xcopy /Y *.xml release\Delleren\
