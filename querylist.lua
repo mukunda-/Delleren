@@ -21,11 +21,14 @@ Delleren.QueryList = {
 	entries   = {}; 
 	x         = 0;
 	y         = 0;
+	called    = false;
 }
 
 -------------------------------------------------------------------------------
 function Delleren.QueryList:Init()
 	self.frame = CreateFrame( "Frame", "DellerenQueryList", UIParent )
+	table.insert( UISpecialFrames, "DellerenQueryList" )
+	
 	self.frame:SetFrameStrata( "DIALOG" )
 	self.frame:SetSize( FRAMEWIDTH, 10 )
 	
@@ -34,10 +37,11 @@ function Delleren.QueryList:Init()
 	self.frame.bg:SetAllPoints()
 	self.frame:EnableMouse( true )
 	 
-	self.x, self.y = 1920, 1080 
-	self.frame:SetPoint( "TOPLEFT", nil, "TOPLEFT", self.x, -self.y )
-	self.frame:Show()
+--	self.x, self.y = 1920, 1080 
+--	self.frame:SetPoint( "TOPLEFT", nil, "TOPLEFT", self.x, -self.y )
+--	self.frame:Show()
 	
+	self.frame:SetScript( "OnHide", Delleren.QueryList.OnHide )
 	
 	--[[self:UpdateList( {
 		{ name = "Delleren",  id = 115072 };
@@ -99,6 +103,7 @@ function Delleren.QueryList:ShowList( list, items, position )
 		self:HideEntry( i )
 	end 
 	
+	self.called = false
 	self.frame:Show()
 end
 
@@ -208,11 +213,18 @@ end
 function Delleren.QueryList.EntryFrameClicked( frame )
 	if frame.action then
 		if frame.action.type == "CANCEL" then
-			Delleren.Query:Fail()
 			Delleren.QueryList.frame:Hide()
 		elseif frame.action.type == "CALL" then
+			Delleren.QueryList.called = true
 			Delleren.Query:RequestManual( frame.action.index )
 			Delleren.QueryList.frame:Hide()
 		end
+	end
+end
+
+-------------------------------------------------------------------------------
+function Delleren.QueryList.OnHide( frame )
+	if not Delleren.QueryList.called then
+		Delleren.Query:Fail()
 	end
 end
