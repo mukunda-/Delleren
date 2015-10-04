@@ -4,7 +4,7 @@
 -- See LICENSE-DELLEREN.TXT
 -------------------------------------------------------------------------------
 
-local VERSION = "1.3.0"
+local VERSION = "1.3.5"
 
 -------------------------------------------------------------------------------
 DellerenAddon = LibStub("AceAddon-3.0"):NewAddon( "Delleren", 
@@ -37,6 +37,4 @@ function Delleren:Setup()
 	self.Indicator:Init()
 	self.CDBar:Init()
 	self.QueryList:Init()
-	
-	
 end

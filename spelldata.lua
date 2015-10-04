@@ -185,7 +185,7 @@ local SpellData = {
 -------------------------------------------------------------------------------
 local GlyphFilter = {
 	-- glyphs that we should care about
-	-- currently none.
+	-- currently none!
 }
 
 -------------------------------------------------------------------------------
@@ -224,6 +224,27 @@ function Delleren.SpellData:BuffSpell( id )
 	local a = SpellMap[id]
 	if not a then return nil end
 	return a.buff ~= 0
+end
+
+-------------------------------------------------------------------------------
+function Delleren.SpellData:BuildNameMap()
+	if self.namemap then return end
+	
+	self.namemap = {}
+	
+	for id,data in pairs( SpellMap ) do
+		local name = GetSpellInfo( id )
+		if name then
+			self.namemap[ string.lower( name ) ] = id
+		end
+	end
+end
+
+-------------------------------------------------------------------------------
+function Delleren.SpellData:IDFromName( name )
+	self:BuildNameMap()
+	
+	return self.namemap[ string.lower(name) ]
 end
 
 -------------------------------------------------------------------------------

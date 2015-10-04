@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 local Delleren = DellerenAddon
+local L = Delleren.Locale
 
 local BUTTON_WIDTH  = 120
 local BUTTON_HEIGHT = 16
@@ -34,6 +35,7 @@ function Delleren.Ignore:InitPanel()
 		frame.bg:SetAllPoints()
 		frame:SetSize( 100, 50 )
 		frame:SetPoint( "CENTER" )
+		frame:Hide()
 		
 		self.frame = frame
 		
@@ -43,7 +45,7 @@ function Delleren.Ignore:InitPanel()
 		closebutton:SetWidth( 64 )
 		closebutton:SetHeight( BUTTON_HEIGHT )
 		closebutton:Show()
-		closebutton:SetText( "Close" )
+		closebutton:SetText( L["Close"] )
 		closebutton:SetPoint( "BOTTOM", 0, PADDING )
 		closebutton:SetScript( "OnClick", function() Delleren.Ignore.frame:Hide() end )
 	end

@@ -3,7 +3,7 @@
 
 #### User's Manual 
 
-Last Updated 11:36 PM 10/2/2015
+Last Updated 6:54 PM 10/3/2015
 
 -----
 Delleren is an addon that simplifies the process of identifying and calling for spells from other players in your raid. For optimal results, your entire raid should have Delleren installed.
@@ -24,7 +24,7 @@ Type `/delleren config` in your chat window to open the Delleren configuration p
 
 Configuration sections:
 
-  - Calling: Options for when making calls.
+  - Calling: Options for making calls.
   - CD Bar: Options for the CD bar.
   - Indicator: Options to style the main indicator.
   - Profiles: Profile creation and loading.
@@ -38,7 +38,11 @@ The "call" command is used to call for CDs from other players. It's usage is:
 
     /delleren call {spell list} [options]
 
-`{spell list}` is a plain list of numbers that correspond to spell IDs that you would like your raid to cast. An easy way to get spell IDs is from wowhead URLs. Just do a web search for "<spellname> wowhead" and the first result will likely be it's wowhead article and the number in the URL is the spell ID. There's also a spell ID search tool included in the Delleren configuration panel under Tracked Spells.
+`{spell list}` is a plain list of numbers that correspond to spell IDs that you would like your raid to cast. You can get spell IDs using the `/delleren id` command. For example:
+
+    /delleren id pain suppression
+    
+-will print the spell ID for Pain Suppression in the chat window. If the spell is defined in Delleren's spell data, then the ID will be shown in green, otherwise it is an unsupported spell and cannot be tracked. Unsupported spells can only be called from other players with Delleren installed.
 
 There are also a few presets listed below that you can use to populate your spell list. (Listed further below.)
 
@@ -154,7 +158,7 @@ Delleren provides a simple cooldown tracking interface that allows you to easily
 
 The buttons on the CD Bar may be clicked to call for the corresponding spells. Left-click makes an auto-query. Right-click makes a manual-query, so a menu will be shown, listing who has the spell ready.
 
-Which spells are tracked is controlled in the configuration panel under Tracked Spells. There is an edit box in which you can list spell IDs to track. There is also a tool underneath the edit box to help you find Spell IDs from spell names. Currently, the spells you want to track must be defined already in Delleren's spell database. Defining more spells is not supported yet.
+Which spells are tracked is controlled in the configuration panel under Tracked Spells. There is an edit box in which you can list spell IDs or spell names to track. Currently, the spells you want to track must be defined already in Delleren's spell database. Defining more spells is not supported yet.
 
 The buttons change visual states according to the situation. Grayed-out/disabled means that all of the people who can provide the spell are dead. The buttons turn red when all of the players who can give the spell are out of range. A cooldown overlay is only shown when all players have the spell on CD, otherwise, a normal button will be shown, with a "stacks" number showing how many charges of the spell are ready to be used, if more than one.
 

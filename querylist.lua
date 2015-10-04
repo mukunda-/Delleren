@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 local Delleren = DellerenAddon
+local L = Delleren.Locale
 
 local FRAMEPADDING = 3
 local ENTRYHEIGHT  = 16
@@ -66,7 +67,7 @@ function Delleren.QueryList:ShowList( list, items, position )
 
 	local count = 0
 	count = count + 1
-	self:ShowEntry( count, "Cancel", 
+	self:ShowEntry( count, L["Cancel"], 
 		{ tex = "Interface\\ICONS\\trade_engineering"; 
 		  action = { type = "CANCEL" };
 		})

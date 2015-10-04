@@ -4,10 +4,11 @@
 ## Author: mukunda
 ## SavedVariables: DellerenAddonSaved
 ## OptionalDeps: Masque
-## Version: 1.3.0
+## Version: 1.3.5
 embeds.xml
 
 init.lua
+locale\index.xml
 
 cdbar.lua
 cdbutton.lua

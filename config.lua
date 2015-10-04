@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 local Delleren = DellerenAddon
+local L = Delleren.Locale
 
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
@@ -15,10 +16,10 @@ local VERSION = 1
 
 -------------------------------------------------------------------------------
 local SOUND_CHANNELS = {
-	["Master"]   = "Master";
-	["SFX"]      = "Sound Effects";
-	["Ambience"] = "Ambience";
-	["Music"]    = "Music";
+	["Master"]   = L["Master"];
+	["SFX"]      = L["Sound Effects"];
+	["Ambience"] = L["Ambience"];
+	["Music"]    = L["Music"];
 }
 
 -------------------------------------------------------------------------------
@@ -110,6 +111,10 @@ local DB_DEFAULTS = {
 		tracking = {
 			list = nil; -- filled in at init
 		};
+		
+		mmicon = {
+			hide = false;
+		};
 	};
 }
 
@@ -126,25 +131,33 @@ local OPTIONS_TABLE = {
 	
 	args = {
 		lockframes = {
-			name = "Lock Frames";
-			desc = "Locks/Unlocks frames to be moved.";
+			name = L["Lock Frames"];
+			desc = L["Locks/Unlocks frames to be moved."];
 			type = "toggle";
 			set = function( info, val ) Delleren:ToggleFrameLock() end;
 			get = function( info ) return not Delleren.unlocked end;
 		};
 		
+		mmicon = {
+			name = L["Minimap Icon"];
+			desc = L["Hide/Show the minimap icon."];
+			type = "toggle";
+			set = function( info, val ) Delleren.Config:SetMinimapIcon( val ) end;
+			get = function( info ) return not Delleren.Config.db.profile.mmicon.hide end;
+		};
+		
 		calling = {
-			name = "Calling";
+			name = L["Calling"];
 			type = "group";
 			args = {
 				whisperdesc = {
 					order = 1;
-					name = "Whispers are used to call for spells from players without Delleren installed. If you disable whispers, you are expected to call for your spell manually (e.g. over voice-chat).";
+					name = L["Whisper Option Description"];
 					type = "description";
 				};
 				whisper = {
 					order = 2;
-					name = "Enable Whispers";
+					name = L["Enable Whispers"];
 					type = "toggle";
 					set = function( info, val ) Delleren.Config:SetCallingWhisper( val ) end;
 					get = function( info ) return Delleren.Config.db.profile.calling.whisper end;
@@ -153,13 +166,13 @@ local OPTIONS_TABLE = {
 		};
 		
 		indicator = {
-			name = "Indicator";
+			name = L["Indicator"];
 			type = "group";
 			args = {
 				
 				framesize = {
-					name  = "Frame Size";
-					desc  = "Size of the indicator frame.";
+					name  = L["Frame Size"];
+					desc  = L["Size of the indicator frame."];
 					type  = "range";
 					min   = 16;
 					max   = 256;
@@ -170,8 +183,8 @@ local OPTIONS_TABLE = {
 				};
 				
 				fontsize = {
-					name  = "Font Size";
-					desc  = "Size of the indicator font.";
+					name  = L["Font Size"];
+					desc  = L["Size of the indicator font."];
 					type  = "range";
 					min   = 4;
 					max   = 24;
@@ -182,8 +195,8 @@ local OPTIONS_TABLE = {
 				};
 				
 				fontface = {
-					name  = "Font";
-					desc  = "Indicator font.";
+					name  = L["Font"];
+					desc  = L["Indicator font."];
 					type  = "select"; 
 					set   = function( info, val ) Delleren.Config:SetIndicatorFont( val ) end;
 					get   = function( info ) return FindValueKey( Delleren.Config.font_list, Delleren.Config.db.profile.indicator.font ) end;
@@ -191,8 +204,8 @@ local OPTIONS_TABLE = {
 				};
 				
 				resetpos = {
-					name  = "Reset Position";
-					desc  = "Reset the indicator's position.";
+					name  = L["Reset Position"];
+					desc  = L["Reset the indicator's position."];
 					type  = "execute";
 					func  = function() Delleren.Config:SetIndicatorPosition( 0, 0 ) end;
 					order = 4;
@@ -202,12 +215,12 @@ local OPTIONS_TABLE = {
 		};
 		
 		sounds = {
-			name = "Sounds";
+			name = L["Sounds"];
 			type = "group";
 			args = {
 				channel = {
-					name   = "Sound Channel:";
-					desc   = "Channel to play sounds on.";
+					name   = L["Sound Channel:"];
+					desc   = L["Channel to play sounds on."];
 					type   = "select";
 					values = SOUND_CHANNELS;
 					set    = function( info, val ) Delleren.Config.db.profile.sound.channel = val end;
@@ -218,18 +231,18 @@ local OPTIONS_TABLE = {
 		};
 		
 		cdbar = {
-			name = "CD Bar";
+			name = L["CD Bar"];
 			type = "group";
 			args = {
 				desc = {
-					name  = "The CD Bar is an actionbar-like display of CDs that you are tracking. If you are like Migs (you play on a toaster), disabling it may give a tiny performance boost.";
+					name  = L["CD Bar Description"];
 					type  = "description";
 					order = 1;
 				};
 				
 				enable = {
-					name  = "Enable";
-					desc  = "Enable the CD Bar.";
+					name  = L["Enable"];
+					desc  = L["Enable the CD Bar."];
 					type  = "toggle";
 					set   = function( info, val ) Delleren.Config:EnableCDBar( val ) end;
 					get   = function( info ) return Delleren.Config.db.profile.cdbar.enabled end;
@@ -242,8 +255,8 @@ local OPTIONS_TABLE = {
 				};
 				
 				enable_mouse = {
-					name  = "Enable Mouse";
-					desc  = "Enable mouse interaction with the CD bar.";
+					name  = L["Enable Mouse"];
+					desc  = L["Enable mouse interaction with the CD bar."];
 					type  = "toggle";
 					set   = function( info, val ) Delleren.Config:EnableCDBarMouse( val ) end;
 					get   = function( info ) return Delleren.Config.db.profile.cdbar.enable_mouse end;
@@ -257,8 +270,8 @@ local OPTIONS_TABLE = {
 				};
 				
 				size = {
-					name  = "Button Size";
-					desc  = "Size of button frames.";
+					name  = L["Button Size"];
+					desc  = L["Size of button frames."];
 					type  = "range";
 					min   = 8;
 					max   = 128;
@@ -269,8 +282,8 @@ local OPTIONS_TABLE = {
 				};
 				
 				columns = {
-					name  = "Columns";
-					desc  = "Number of columns in layout.";
+					name  = L["Columns"];
+					desc  = L["Number of columns in layout."];
 					type  = "range";
 					min   = 1;
 					max   = 32;
@@ -281,8 +294,8 @@ local OPTIONS_TABLE = {
 				};
 				
 				padding = {
-					name  = "Padding";
-					desc  = "Padding in between each button.";
+					name  = L["Padding"];
+					desc  = L["Padding in between each button."];
 					type  = "range";
 					min   = -50;
 					max   = 50;
@@ -295,30 +308,30 @@ local OPTIONS_TABLE = {
 		};
 		
 		tracking = {
-			name = "Tracked Spells";
+			name = L["Tracked Spells"];
 			type = "group";
 			args = {
 				desc = {
 					order = 1;
-					name  = "Spells that are tracked may be called for with instant queries, and they show up in the CD bar.";
+					name  = L["Tracked Spells Description"];
 					type  = "description";
 				};
 				
 				split1 = {
 					order = 2;
-					name  = "Tracked Spells";
+					name  = L["Tracked Spells"];
 					type  = "header";
 				};
 				
 				split2 = {
 					order = 1000;
-					name  = "Edit";
+					name  = L["Edit"];
 					type  = "header";
 				};
 				
 				editorhelp = {
 					order = 1001;
-					name  = "Add or remove which spells are tracked here. Enter spell IDs separated by spaces. Use the handy search tool below to find spell IDs. Good luck if two spells have the same icon and name!";
+					name  = L["Editor Help"];
 					type  = "description";
 				};
 				
@@ -336,6 +349,7 @@ local OPTIONS_TABLE = {
 					end;
 				};
 				
+				--[[			
 				split3 = {
 					order = 2000;
 					name = "Spell Search";
@@ -352,6 +366,7 @@ local OPTIONS_TABLE = {
 						Delleren.Config:DoSpellSearch( val )
 					end;
 				};
+				]]
 			};
 		};
 		 
@@ -390,10 +405,10 @@ local function InsertSoundOption( key, name, desc, order )
 	
 end
 
-InsertSoundOption( "CALL", "Call:", "Sound to play when making a call.", 10 )
-InsertSoundOption( "MANCALL", "Non-Delleren Call:", "Sound to play when making a call to a user without Delleren.", 20 )
-InsertSoundOption( "HELP", "Help:", "Sound to play when being asked for help.", 30 )
-InsertSoundOption( "FAIL", "Fail:", "Sound to play when something goes wrong.", 40 )
+InsertSoundOption( "CALL", L["Call:"], L["Sound to play when making a call."], 10 )
+InsertSoundOption( "MANCALL", L["Non-Delleren Call:"], L["Sound to play when making a call to a user without Delleren."], 20 )
+InsertSoundOption( "HELP", L["Help:"], L["Sound to play when being asked for help."], 30 )
+InsertSoundOption( "FAIL", L["Fail:"], L["Sound to play when something goes wrong."], 40 )
 
 -------------------------------------------------------------------------------
 function Delleren.Config:ResetTrackedSpellOptions()
@@ -433,7 +448,7 @@ function Delleren.Config:RebuildTrackedSpellOptions()
 		self:InsertTrackedSpellOption( v.spell )
 	end
 end
- 
+ --[[
 -------------------------------------------------------------------------------
 function Delleren.Config:ResetSpellSearch()
 	for k,v in pairs( self.options.args.tracking.args ) do
@@ -497,7 +512,7 @@ function Delleren.Config:DoSpellSearch( name )
 	}
 	
 	LibStub("AceConfigRegistry-3.0"):NotifyChange("Delleren")
-end
+end]]
 
 -------------------------------------------------------------------------------
 function Delleren.Config:CreateDB() 
@@ -677,7 +692,8 @@ function Delleren.Config:ResetTrackingEditorText()
 	self.tracking_editor_text = ""
 	for k,v in ipairs( self.tracked_spell_data ) do
 		self.tracking_editor_text = 
-			self.tracking_editor_text .. v.spell .. "\n"
+			self.tracking_editor_text 
+			.. string.lower(GetSpellInfo(v.spell)) .. "\n"
 	end
 end
 
@@ -687,23 +703,45 @@ function Delleren.Config:TrackingEditorChanged( val )
 	
 	local list = {}
 	
-	for word in string.gmatch( val, "%S+" ) do
+	for word in string.gmatch( val, "[^\n]+" ) do
 		local spellid = tonumber(word)
-		if spellid ~= nil and GetSpellInfo( spellid ) then
-		
-			local duplicate = false
-			
-			for k,v in pairs( list ) do
-				if list.spell == spellid then
-					duplicate = true
-					break
-				end
+		if not spellid then
+			spellid = Delleren.SpellData:IDFromName( word )
+			if not spellid then
+				Delleren:Print( L["Unknown spell:"] .. ' "' .. word .. '"' )
 			end
+		end
+		
+		if spellid ~= nil then
 			
-			if not duplicate then
-				table.insert( list, {spell=spellid} )
+			if not Delleren.SpellData:KnownSpell( spellid ) then
+				local name = GetSpellInfo( spellid )
 				
-				--if #list >= Delleren.Status.MAX_SUBS then break end
+				if name then
+					Delleren:Print( L["Unknown spell:"] .. " " .. name )
+				else
+					Delleren:Print( L["Invalid spell ID:"] .. " " .. spellid )
+				end
+				
+				spellid = nil
+			else
+			
+				--if spellid ~= nil and GetSpellInfo( spellid ) then
+			
+				local duplicate = false
+				
+				for k,v in pairs( list ) do
+					if list.spell == spellid then
+						duplicate = true
+						break
+					end
+				end
+				
+				if not duplicate then
+					table.insert( list, {spell=spellid} )
+					
+					--if #list >= Delleren.Status.MAX_SUBS then break end
+				end
 			end
 		end
 	end
@@ -720,4 +758,15 @@ end
 -------------------------------------------------------------------------------
 function Delleren.Config:SetCallingWhisper( val )
 	self.db.profile.calling.whisper = val;
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Config:SetMinimapIcon( show )
+	self.db.profile.mmicon.hide = not show
+	
+	if show then
+		Delleren.MinimapButton:Show( true )
+	else
+		Delleren.MinimapButton:Show( false )
+	end
 end

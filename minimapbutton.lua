@@ -5,11 +5,15 @@
 -------------------------------------------------------------------------------
 
 local Delleren = DellerenAddon
+local L = Delleren.Locale
+
 Delleren.MinimapButton = {}
+
+local LDB    = LibStub:GetLibrary( "LibDataBroker-1.1" )
+local DBIcon = LibStub:GetLibrary( "LibDBIcon-1.0"     )
 
 -------------------------------------------------------------------------------
 function Delleren.MinimapButton:Init()
-	local LDB = LibStub:GetLibrary("LibDataBroker-1.1")
 	
 	self.data = LDB:NewDataObject( "Delleren", {
 		type = "data source";
@@ -19,6 +23,20 @@ function Delleren.MinimapButton:Init()
 		OnEnter = function(...) Delleren.MinimapButton:OnEnter(...) end;
 		OnLeave = function(...) Delleren.MinimapButton:OnLeave(...) end;
 	});
+end
+
+-------------------------------------------------------------------------------
+function Delleren.MinimapButton:OnLoad() 
+	DBIcon:Register( "Delleren", self.data, Delleren.Config.db.profile.mmicon )
+end
+
+-------------------------------------------------------------------------------
+function Delleren.MinimapButton:Show( show )
+	if show then
+		DBIcon:Show( "Delleren" )
+	else
+		DBIcon:Hide( "Delleren" )
+	end
 end
 
 -------------------------------------------------------------------------------
@@ -59,16 +77,16 @@ local function InitializeMenu( self, level )
 	info.notCheckable = true
 	UIDropDownMenu_AddButton( info, level )
 
-	AddMenuButton( "Open Ingore Panel", function() Delleren.Ignore:OpenPanel() end )
+	AddMenuButton( L["Open Ingore Panel"], function() Delleren.Ignore:OpenPanel() end )
 	
 	AddSeparator()
 	
-	AddMenuButton( "Show Versions", function() Delleren:WhoCommand() end )
-	AddMenuButton( "Open Configuration", function() Delleren.Config:Open() end )
+	AddMenuButton( L["Show Versions"], function() Delleren:WhoCommand() end )
+	AddMenuButton( L["Open Configuration"], function() Delleren.Config:Open() end )
 	
 	AddSeparator()
 	
-	AddMenuButton( "Close", function() end )
+	AddMenuButton( L["Close"], function() end )
 end
 
 -------------------------------------------------------------------------------
@@ -107,9 +125,9 @@ function Delleren.MinimapButton:OnEnter( frame )
 	GameTooltip:ClearLines();
 	GameTooltip:AddDoubleLine("Delleren", Delleren.version, 0, 0.7, 1, 1, 1, 1);
 	GameTooltip:AddLine( " " );
-	GameTooltip:AddLine( "|cff00ff00Click|r to unlock frames.", 1, 1, 1 );
-	GameTooltip:AddLine( "|cff00ff00Shift-Click|r to open ignore panel.", 1, 1, 1 );
-	GameTooltip:AddLine( "|cff00ff00Right-click|r for options.", 1, 1, 1 );
+	GameTooltip:AddLine( L["|cff00ff00Click|r to unlock frames."], 1, 1, 1 );
+	GameTooltip:AddLine( L["|cff00ff00Shift-Click|r to open ignore panel."], 1, 1, 1 );
+	GameTooltip:AddLine( L["|cff00ff00Right-click|r for options."], 1, 1, 1 );
 	GameTooltip:Show();
 end
 

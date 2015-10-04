@@ -7,6 +7,7 @@
 -------------------------------------------------------------------------------
 
 local Delleren = DellerenAddon
+local L        = Delleren.Locale
 
 Delleren.CDBar = {
 	frame    = nil;
@@ -144,7 +145,7 @@ function Delleren.CDBar:Unlock()
 		
 		self.dragframe.text = self.dragframe:CreateFontString()
 		self.dragframe.text:SetFont( "Fonts\\FRIZQT__.TTF", 10, "OUTLINE" ) 
-		self.dragframe.text:SetText( "Delleren CDBar" )
+		self.dragframe.text:SetText( L["Delleren CDBar"] )
 		self.dragframe.text:SetPoint( "CENTER", self.dragframe )
 		
 		self.frame:SetScript("OnMouseDown", function(self,button)

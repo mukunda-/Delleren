@@ -116,6 +116,7 @@ local function TablesDiffer( a, b )
 	return false
 end
 
+-------------------------------------------------------------------------------
 function Delleren.Status:SetIncompatible( name, data )
 	local p = self:GetPlayerData( name, true )
 	p.protocol = data.pv
@@ -579,9 +580,17 @@ function Delleren.Status:BuildCDBarData()
 end
 
 -------------------------------------------------------------------------------
+-- Returns time remaining on player timeout or nil if not in timeout.
+--
 function Delleren.Status:PlayerInTimeout( name )
-	if not self.players[name] then return false end
-	return GetTime() < self.players[name].timeout
+	if not self.players[name] then return nil end
+	
+	local t = self.players[name].timeout - GetTime()
+	if t > 0 then
+		return t
+	end
+	
+	return nil
 end
 
 -------------------------------------------------------------------------------

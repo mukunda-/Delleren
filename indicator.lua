@@ -7,6 +7,7 @@
 -------------------------------------------------------------------------------
 
 local Delleren = DellerenAddon
+local L = Delleren.Locale
 
 -------------------------------------------------------------------------------
 Delleren.Indicator = {
@@ -254,7 +255,7 @@ function Delleren.Indicator:EnableDragging( icon )
 	
 	if not Delleren.Query.active and not Delleren.Help.active then
 		--self:HideText()
-		self:SetText( "Delleren\nRight-click to lock." )
+		self:SetText( "Delleren\n" .. L["Right-click to lock."] )
 	end
 	
 	self.dragframe:Show()

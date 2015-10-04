@@ -7,6 +7,7 @@
 -------------------------------------------------------------------------------
 
 local Delleren = DellerenAddon
+local L = Delleren.Locale
  
 local COMM_PREFIX      = "DELLEREN"
 local PROTOCOL_VERSION = 2
@@ -24,6 +25,8 @@ end
 -------------------------------------------------------------------------------
 function Delleren:OnEnable()
 
+	self.MinimapButton:OnLoad()
+	
 	self.Status:CacheTalents()
 	
 	self:ReMasque()
@@ -42,7 +45,7 @@ function Delleren:OnEnable()
 	 
 	self:RegisterComm( "DELLEREN" )
 	
-	self:Print( "Version: " .. self.version )
+	self:Print( L["Version:"] .. " " .. self.version )
 	
 	Delleren.Ignore:Load()
 				
@@ -367,7 +370,7 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		if data.pv > PROTOCOL_VERSION then
 			if not self.warned_protocol_outdated then
 				self.warned_protocol_outdated = true
-				self:Print( "One or more players in your raid are using a newer version of Delleren that isn't compatible with yours." )
+				self:Print( L["One or more players in your raid are using a newer version of Delleren that isn't compatible with yours."] )
 			end
 		end
 		
@@ -609,7 +612,8 @@ local function PushCallSpell( spells, arg )
 	
 		local spellid = tonumber( arg )
 		if not spellid then
-			print( "[Delleren] Invalid Spell ID: " .. arg )
+		
+			Delleren:Print( L["Invalid spell ID: "] .. arg )
 			return
 		end
 		
@@ -658,7 +662,7 @@ function Delleren:CallCommand( args )
 			elseif arg == "-c" then
 				buff = false
 			else
-				Delleren:Print( "Unknown option: " .. arg )
+				Delleren:Print( L["Unknown option: "] .. arg )
 			end
 			
 		else
@@ -677,7 +681,7 @@ function Delleren:CallCommand( args )
 	end
 	
 	if #spells == 0 then
-		Delleren:Print( "No spell IDs given!" )
+		Delleren:Print( L["No spell IDs given!"] )
 		return
 	end
 	 
@@ -690,7 +694,7 @@ function Delleren:WhoCommand()
 	local players_with    = {}
 	local players_without = {}
 	
-	Delleren:Print( "Your version: |cff00ff00" .. self.version .. "|r" )
+	Delleren:Print( L["Your version: "] .. "|cff00ff00" .. self.version .. "|r" )
 	
 	local count = 0
 	
@@ -703,14 +707,14 @@ function Delleren:WhoCommand()
 				table.insert( players_with, data.name .. ": |cff00ff00" .. data.version .. "|r" )
 			else
 				if data.version then
-					table.insert( players_without, data.name .. ": |cff900f90" .. data.version .. " (Incompatible)|r" )
+					table.insert( players_without, data.name .. ": |cff900f90" .. data.version .. L[" (Incompatible)"] .. "|r" )
 				else
-					table.insert( players_without, data.name .. ": |cffff0000Not installed.|r" )
+					table.insert( players_without, data.name .. ": |cffff0000" .. L["Not installed."] .. "|r" )
 				end
 				
 			end
 		else
-			table.insert( players_without, data.name .. ": |cff808080Unknown.|r" )
+			table.insert( players_without, data.name .. ": |cff808080" .. L["Unknown."] .. "|r" )
 		end	
 		count = count + 1
 	end
@@ -721,6 +725,59 @@ function Delleren:WhoCommand()
 	
 	for _,v in pairs( players_without ) do
 		Delleren:Print( v )
+	end
+end
+
+-------------------------------------------------------------------------------
+function Delleren:SpellSearch( name )
+	self.spell_search_text = name
+	name = string.lower(name)
+	
+	local count = 0
+	for spellid = 1,200000 do
+		local name2 = GetSpellInfo( spellid )
+		
+		if name2 ~= nil then
+			if name == string.lower( name2 ) then
+				local name, _, icon = GetSpellInfo( spellid )
+				Delleren:Print( "|T" .. icon .. ":0|t [|cffff0000" .. spellid .. "|r] " .. name )
+				count = count + 1
+				if count >= 20 then break end
+			end
+		end
+	end
+	
+	if count == 0 then
+		
+		Delleren:Print( L["Unknown spell: "] .. name )
+	
+	end
+	
+end
+
+-------------------------------------------------------------------------------
+function Delleren:ShowID( args )
+	local name = ""
+	for i = 2, #args do
+		if name ~= "" then
+			name = name .. " "
+		end
+		name = name .. args[i]
+	end
+	
+	if name == "" then
+		Delleren:Print( L["Usage: "] .. "/delleren id <spell name>" )
+		return
+	end
+	
+	local id = self.SpellData:IDFromName( name )
+	  
+	if id then
+		local name, _, icon = GetSpellInfo( id )
+		Delleren:Print( "|T" .. icon .. ":0|t [|cff00ff00" .. id .. "|r] " .. name )
+		
+	else
+		self:SpellSearch( name )
 	end
 end
 
@@ -736,34 +793,38 @@ function SlashCmdList.DELLEREN( msg )
 	
 	if args[1] ~= nil then args[1] = string.lower( args[1] ) end
 	
-	if args[1] == "call" then
+	if args[1] == "call" or args[1] == L["call"] then
 	
 		Delleren:CallCommand( args ) 
 	
-	elseif args[1] == "ignore" then
+	elseif args[1] == "ignore" or args[1] == L["ignore"] then
 	
 		Delleren.Ignore:OpenPanel()
 		
-	elseif args[1] == "config" then
+	elseif args[1] == "config" or args[1] == L["config"] then
 	
 		Delleren.Config:Open()
 		
-	elseif args[1] == "who" or args[1] == "version" then
+	elseif args[1] == "who" or args[1] == "version" or args[1] == L["who"] or args[1] == L["version"] then
 	
 		Delleren:WhoCommand()
 		
-	elseif args[1] == "fuck" then
+	elseif args[1] == "id" or args[1] == L["id"] then
+	
+		Delleren:ShowID( args )
+		
+	elseif args[1] == "fuck" or args[1] == L["fuck"] then
 		 
 		-- this is a police quest reference
-		Delleren:Print( "My what a filthy mind you have!" )
+		Delleren:Print( L["My what a filthy mind you have!"] )
 		
 	else
 		
-		Delleren:Print( "Command listing:" )
-		Delleren:Print( "  /delleren config - Open configuration."  )
-		Delleren:Print( "  /delleren call - Call for a cd. (See User's Manual.)" )
-		Delleren:Print( "  /delleren who - List player versions." )
-		Delleren:Print( "  /delleren ignore - Open ignore panel." )
+		Delleren:Print( L["Command listing:"] )
+		Delleren:Print( "  /delleren " .. L["config - Open configuration."]  )
+		Delleren:Print( "  /delleren " .. L["call - Call for a cd. (See User's Manual.)"] )
+		Delleren:Print( "  /delleren " .. L["who - List player versions."] )
+		Delleren:Print( "  /delleren " .. L["ignore - Open ignore panel."] )
 	
 	end
 	  

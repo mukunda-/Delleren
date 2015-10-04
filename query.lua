@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 local Delleren = DellerenAddon
+local L = Delleren.Locale
 
 local QUERY_WAIT_TIME     = 0.5  -- time to wait for cd responses
 local QUERY_TIMEOUT       = 2.0  -- time to give up query
@@ -276,7 +277,9 @@ function Delleren.Query:Update()
 				-- we don't actually know if it's available for them.
 				--
 				
-				Delleren.Status:OnSpellUsed( self.unit, self.spell, true )
+				--Delleren.Status:OnSpellUsed( self.unit, self.spell, true )
+				--
+				-- changed mind on this one, just rely on the timeouts
 			end
 			self:Fail()
 			return
@@ -318,20 +321,20 @@ function Delleren.Query:GetPreferredRequestIndex()
 	-- if we don't find a "good" match, this records our last resort
 	-- of a non-delleren player, or a player in timeout
 	local last_resort = nil
-	local last_resort_value = 0 -- 1 = in timeout+no delleren
-	                            -- 2 = delleren in timeout
-								-- 3 = no delleren
+	local last_resort_value = 0 -- 1000-timeout = in timeout+no delleren
+	                            -- 2000-timeout = delleren in timeout
+								-- 3000 = no delleren
 								-- 0 = not found
 					
 					
 	local function save_last_resort( index, data )
 		local value
 		if data.timeout and not data.compat then
-			value = 1
+			value = 1000 - data.timeout
 		elseif data.timeout and data.compat then
-			value = 2
+			value = 2000 - data.timeout
 		else
-			value = 3
+			value = 3000
 		end
 		if value > last_resort_value then
 			last_resort = index
@@ -443,7 +446,7 @@ function Delleren.Query:RequestCD()
 		
 		if Delleren.Config.db.profile.calling.whisper then
 			SendChatMessage( "************************", "WHISPER", nil, self.unit )
-			SendChatMessage( "I need " .. spell_name .. ".", "WHISPER", nil, self.unit )
+			SendChatMessage( L( "I need {1}.", spell_name ), "WHISPER", nil, self.unit )
 		end
 		
 		Delleren:PlaySound( "MANCALL" )
