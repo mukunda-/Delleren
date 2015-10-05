@@ -36,27 +36,16 @@ function Delleren.QueryList:Init()
 	self.frame.bg:SetTexture( 0,0,0 )
 	self.frame.bg:SetAllPoints()
 	self.frame:EnableMouse( true )
-	 
---	self.x, self.y = 1920, 1080 
---	self.frame:SetPoint( "TOPLEFT", nil, "TOPLEFT", self.x, -self.y )
---	self.frame:Show()
-	
+	  
 	self.frame:SetScript( "OnHide", Delleren.QueryList.OnHide )
-	
-	--[[self:UpdateList( {
-		{ name = "Delleren",  id = 115072 };
-		{ name = "Llanna",    id = 121253 };
-		{ name = "Poopsauce", id = 123986 };
-	})]]
+	 
 end
 
 -------------------------------------------------------------------------------
 local function GetRealCursorPosition()
 	local x, y = GetCursorPosition()
-	x = x / (768 * GetMonitorAspectRatio())
-	y = y / 768
-	x = x * UIParent:GetWidth()
-	y = y * UIParent:GetHeight()
+	x = x / UIParent:GetEffectiveScale()
+	y = y / UIParent:GetEffectiveScale()
 	y = UIParent:GetHeight() - y
 	
 	return x, y
