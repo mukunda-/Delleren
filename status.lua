@@ -580,6 +580,53 @@ function Delleren.Status:BuildCDBarData()
 end
 
 -------------------------------------------------------------------------------
+-- Returns a list of information regarding players that can cast a spell
+--
+function Delleren.Status:GetSpellStatus( spellid )
+	local data = {}
+	
+	for playername in Delleren:IteratePlayers() do
+		local player = self.players[playername]
+		if player and not player.ignore then
+			local sp = player.spells[spellid]
+			if sp then
+				self:UpdateSpellCooldown( sp )
+				
+				local cd = 0
+				if sp.time ~= 0 then
+					cd = sp.time + sp.cd - GetTime()
+				end
+				
+				table.insert( data, {	
+						name       = playername;
+						charges    = sp.charges;
+						maxcharges = sp.maxcharges;
+						cd         = cd;
+						inrange    = Delleren:UnitNearby( playername );
+						delleren   = self:PlayerHasDelleren( playername );
+						dead       = UnitIsDeadOrGhost( playername ) 
+						             or not UnitIsConnected( playername );
+				})
+			end
+		end
+	end
+	
+	local function sort_value( a )
+		if a.dead then return 0 end
+		if a.charges == 0 then return 1 end
+		if not a.inrange then return 2 end
+		return 3
+	end
+	
+	table.sort( data, 
+		function( a, b )
+			return sort_value(a) > sort_value(b)
+		end )
+	
+	return data
+end
+
+-------------------------------------------------------------------------------
 -- Returns time remaining on player timeout or nil if not in timeout.
 --
 function Delleren.Status:PlayerInTimeout( name )

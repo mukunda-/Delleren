@@ -56,6 +56,8 @@ function CDButton:Create( parent )
 	data.frame:SetScript("OnClick", function( self, button, down ) 
 									    data:Clicked( button ) 
 									end )
+	data.frame:SetScript( "OnEnter", function() data:OnEnter() end )
+	data.frame:SetScript( "OnLeave", function() data:OnLeave() end )
 
 	Delleren:AddMasque( "CDBAR", data.frame )
 	
@@ -64,6 +66,64 @@ function CDButton:Create( parent )
 	g_next_button = g_next_button + 1
 	
 	return data
+end
+
+-------------------------------------------------------------------------------
+function CDButton:OnEnter()
+	GameTooltip:SetOwner( self.frame, "ANCHOR_NONE" )
+    GameTooltip:SetPoint( "TOPLEFT", self.frame, "BOTTOMLEFT" )
+	GameTooltip:ClearLines()
+	
+	local name = GetSpellInfo( self.spell )
+	GameTooltip:AddLine( name, 0, 0.7, 1, 1, 1, 1 )
+	GameTooltip:AddLine( " " )
+	
+	local list = Delleren.Status:GetSpellStatus( self.spell )
+	for _,p in ipairs( list ) do
+		
+		local left_color, right_color
+		local left_text, right_text = p.name, ""
+		local _,cls = UnitClass( p.name )
+		left_color = RAID_CLASS_COLORS[cls].colorStr
+		
+		if not self.delleren then
+			left_text = left_text .. "*"
+		end
+		
+		if p.dead then
+			left_color = "ff404040"
+			right_color  = "ff404040"
+			if not UnitIsConnected( p.name ) then
+				right_text = "OFFLINE"
+			else
+				right_text = "DEAD"
+			end
+		elseif p.charges == 0 then
+			right_color = "ffc030c0"
+			right_text = (tostring(math.ceil( p.cd )) or "???") .. "s"
+		elseif not p.inrange then
+			right_color = "ffff0000"
+			right_text = "OUTRANGED"
+		else
+			right_color = "ff00ff00"
+			
+			if p.charges == 1 then
+				right_text = "READY"
+			else
+				right_text = "READY (" .. p.charges .. ")"
+			end
+		end
+		
+		GameTooltip:AddDoubleLine( "|c" .. left_color .. left_text, 
+		                           "|c" .. right_color .. right_text )
+	end
+	
+	GameTooltip:Show()
+end
+
+-------------------------------------------------------------------------------
+function CDButton:OnLeave()
+	GameTooltip:Hide()
 end
 
 -------------------------------------------------------------------------------

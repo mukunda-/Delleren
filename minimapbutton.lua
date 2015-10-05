@@ -122,12 +122,12 @@ function Delleren.MinimapButton:OnEnter( frame )
     GameTooltip:SetOwner( frame, "ANCHOR_NONE" )
     GameTooltip:SetPoint( tooltip_vertical..horizontal, frame, anchor_vertical..horizontal )
 	
-	GameTooltip:ClearLines();
-	GameTooltip:AddDoubleLine("Delleren", Delleren.version, 0, 0.7, 1, 1, 1, 1);
-	GameTooltip:AddLine( " " );
-	GameTooltip:AddLine( L["|cff00ff00Click|r to unlock frames."], 1, 1, 1 );
-	GameTooltip:AddLine( L["|cff00ff00Shift-Click|r to open ignore panel."], 1, 1, 1 );
-	GameTooltip:AddLine( L["|cff00ff00Right-click|r for options."], 1, 1, 1 );
+	GameTooltip:ClearLines()
+	GameTooltip:AddDoubleLine("Delleren", Delleren.version, 0, 0.7, 1, 1, 1, 1)
+	GameTooltip:AddLine( " " )
+	GameTooltip:AddLine( L["|cff00ff00Click|r to unlock frames."], 1, 1, 1 )
+	GameTooltip:AddLine( L["|cff00ff00Shift-Click|r to open ignore panel."], 1, 1, 1 )
+	GameTooltip:AddLine( L["|cff00ff00Right-click|r for options."], 1, 1, 1 )
 	GameTooltip:Show();
 end
 
