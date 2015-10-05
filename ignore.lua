@@ -9,7 +9,7 @@ local L = Delleren.Locale
 
 local BUTTON_WIDTH  = 120
 local BUTTON_HEIGHT = 16
-local ROWS = 5
+local ROWS = 8
 local PADDING = 4
 local FONTHEIGHT = 12
 
@@ -82,8 +82,8 @@ function Delleren.Ignore:GetButton( index )
 		button.entry_index = index
 		button.player = ""
 	
-		local left, top = math.floor((index-1) / ROWS) * BUTTON_WIDTH, 
-		             ((index-1) % ROWS) * BUTTON_HEIGHT
+		local left, top = math.floor((index-1) / ROWS) * (BUTTON_WIDTH+PADDING), 
+		             ((index-1) % ROWS) * (BUTTON_HEIGHT+PADDING)
 					 
 		button.highlight = button:CreateTexture( nil, "BACKGROUND" )
 		button.highlight:SetPoint( "TOPLEFT", -PADDING, PADDING )
@@ -211,8 +211,8 @@ function Delleren.Ignore:OpenPanel()
 	-- size frame
 	local width = math.floor( (count-1) / ROWS ) + 1
 	local height = math.min( count, ROWS )
-	self.frame:SetWidth( BUTTON_WIDTH * width + PADDING * 2 )
-	self.frame:SetHeight( BUTTON_HEIGHT * height + PADDING * 2 + 24 )
+	self.frame:SetWidth( (BUTTON_WIDTH+PADDING) * width + PADDING )
+	self.frame:SetHeight( (BUTTON_HEIGHT+PADDING) * height + PADDING + 24 )
 	
 	self.frame:Show()
 end
