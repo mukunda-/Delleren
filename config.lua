@@ -58,6 +58,7 @@ local DB_DEFAULTS = {
 		calling = {	
 			whisper  = true;
 			localize = true;
+			dellbias = true;
 		};
 		
 		indicator = {
@@ -174,6 +175,17 @@ local OPTIONS_TABLE = {
 					type = "toggle";
 					set = function( info, val ) Delleren.Config.db.profile.calling.localize = val end;
 					get = function( info ) return Delleren.Config.db.profile.calling.localize end;
+				};
+				dellbiasdesc = {
+					order = 5;
+					name = L["Prefer Delleren Players Description"];
+					type = "description";
+				};
+				dellbias = {
+					name = L["Prefer Delleren Players"];
+					type = "toggle";
+					set = function( info, val ) Delleren.Config.db.profile.calling.dellbias = val end;
+					get = function( info ) return Delleren.Config.db.profile.calling.dellbias end;
 				};
 			};
 		};

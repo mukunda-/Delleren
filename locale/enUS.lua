@@ -50,6 +50,7 @@ L["Whisper Option Description"] = "Whispers are used to call for spells from pla
 --L["Enable Whispers"]
 L["Localize Whisper Description"] = "Disable localize whispers to always have whispers sent in English rather than based on your locale. This is recommended if you don't personally speak english but often play with players that do.";
 --L["Localize Whispers"]
+L["Prefer Delleren Players Description"] = "Prefer Delleren enabled players over normal players. This will cause query filters to choose players with Delleren installed over other players, even if they have a lower priority in the query filter.";
 
 --L["Indicator"]
 --L["Frame Size"]

@@ -303,8 +303,8 @@ local PLAYER_ROLE_WILDCARDS = {
 function Delleren.Query:PlayerPassesFilter( name )
 	
 	for _,player in ipairs( self.players ) do
-		if PLAYER_ROLE_WILDCARDS[player] then
-			local role = PLAYER_ROLE_WILDCARDS[player]
+		local role = PLAYER_ROLE_WILDCARDS[player]
+		if role then
 			if UnitGroupRolesAssigned( name ) == role then return true end
 		elseif player == "*" then 
 			return true
@@ -320,63 +320,83 @@ function Delleren.Query:GetPreferredRequestIndex()
 	
 	-- if we don't find a "good" match, this records our last resort
 	-- of a non-delleren player, or a player in timeout
-	local last_resort = nil
-	local last_resort_value = 0 -- 1000-timeout = in timeout+no delleren
+	local best_choice = nil
+	local best_choice_value = 0 -- 1000-timeout = in timeout+no delleren
 	                            -- 2000-timeout = delleren in timeout
 								-- 3000 = no delleren
 								-- 0 = not found
+	
+	local dellbias = Delleren.Config.db.profile.calling.dellbias
 					
-					
-	local function save_last_resort( index, data )
+	local function update_best_choice( index, data )
 		local value
-		if data.timeout and not data.compat then
-			value = 1000 - data.timeout
-		elseif data.timeout and data.compat then
-			value = 2000 - data.timeout
+		
+		if dellbias then
+			if data.timeout and not data.compat then
+				-- in timeout and no delleren
+				value = 1000 - data.timeout
+			elseif data.timeout and data.compat then
+				-- in timeout with delleren
+				value = 2000 - data.timeout
+			elseif not data.compat then
+				-- no delleren
+				value = 3000
+			else
+				value = 4000
+			end
 		else
-			value = 3000
+			if data.timeout then
+				value = 2000 - data.timeout
+			else
+				value = 4000
+			end
 		end
-		if value > last_resort_value then
-			last_resort = index
-			last_resort_value = value
+		
+		if value > best_choice_value then
+			best_choice = index
+			best_choice_value = value
+			
+			if value >= 4000 then
+				return true
+			end
 		end
 	end
 	
 	for _,player in ipairs( self.players ) do
 		
-		if PLAYER_ROLE_WILDCARDS[player] then
-			local role = PLAYER_ROLE_WILDCARDS[player]
+		local role = PLAYER_ROLE_WILDCARDS[player]
+		if role then
 			
 			for index,listed in ipairs( self.list ) do
 				if UnitGroupRolesAssigned(listed.name) == role then
 					
-					if not listed.timeout and listed.compat then
-						return index
+					if update_best_choice( index, listed ) then 
+						return best_choice 
 					end
-					
-					save_last_resort( index, listed )
 				end
 			end
 			
 		elseif player == "*" then
 			for index,listed in ipairs( self.list ) do
 			
-				if not listed.timeout then return index end
-				save_last_resort( index, listed )
+				if update_best_choice( index, listed ) then 
+					return best_choice 
+				end
 			end
-		else 
+		else
 			for index,listed in ipairs( self.list ) do
 			
 				if string.lower(listed.name) == player then
-					
-					if not listed.timeout then return index end
-					save_last_resort( index, listed )
+				
+					if update_best_choice( index, listed ) then 
+						return best_choice 
+					end
 				end
 			end
 		end
 	end
 	
-	return last_resort
+	return best_choice
 end
 
 -------------------------------------------------------------------------------
