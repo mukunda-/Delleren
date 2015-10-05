@@ -4,6 +4,8 @@
 -- See LICENSE-DELLEREN.TXT
 -------------------------------------------------------------------------------
 
+-- special thanks to Barkskin-Mannoroth for helping me test some of them spells.
+
 local Delleren = DellerenAddon
 
 --spell definition format:

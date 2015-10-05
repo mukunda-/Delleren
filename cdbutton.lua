@@ -40,7 +40,7 @@ function CDButton:Create( parent )
 	data.frame:SetPushedTexture( "Interface\\BUTTONS\\CheckButtonHilight", "add" )
 	data.frame:SetHighlightTexture( "Interface\\BUTTONS\\ButtonHilight-Square", "add" )
 	 
-	local stacks = data.frame:CreateFontString()
+	local stacks = data.frame:CreateFontString( nil, "OVERLAY" )
 	data.frame.stacks = stacks
 	stacks:SetFont( STACKFONT, 10, "OUTLINE" ) 
 	stacks:SetPoint( "BOTTOMRIGHT", data.frame.icon, "BOTTOMRIGHT", 0, 0 ) 

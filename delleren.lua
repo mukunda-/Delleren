@@ -127,7 +127,7 @@ function Delleren:OnUnitSpellcastSucceeded( event, unitID, spell, rank,
 			self.Status:PlayerTalentsChanged( self:UnitFullName(unitID), 10 )
 		end
 		
-		if self.Query.active and not self.Query.buff 
+		if self.Query.active and not self.Query.buff and self.Query.requested
 		   and UnitGUID( unitID ) == UnitGUID( self.Query.unit ) then
 		
 			if (not self.Query.item and spellID == self.Query.spell) or
@@ -164,14 +164,17 @@ function Delleren:OnAuraApplied( spellID, source, dest )
 	   and ((not self.Query.item and spellID == self.Query.spell) 
 	       or (self.Query.item and 
 	       GetSpellInfo(spellID) == GetItemSpell(self.Query.spell))) then
+		   
+		-- hack to fix Vigilance which has a self-buff
+		if spellID == 114030 and source == dest then return end
 	   
 		if dest == UnitGUID( "player" ) then
-		
+			
 			self.Indicator:SetAnimation( "QUERY", "SUCCESS" )
 			self.Query.active = false
 			
 		else
-		
+			
 			-- cd was cast on someone else! find another one!
 			self.Query.requested = false
 		end
