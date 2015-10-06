@@ -16,11 +16,13 @@ Delleren.CDBar = {
 }
 
 -------------------------------------------------------------------------------
-function Delleren.CDBar:Init()
+Delleren:AddSetup( function ()
+	local self = Delleren.CDBar
+	
 	self.frame = CreateFrame( "Frame", "DellerenCDBar", UIParent )
 	self.frame:SetPoint( "CENTER", 0, 0 )
 	self.frame:SetSize( 64,64 )
-end
+end)
 
 -------------------------------------------------------------------------------
 function Delleren.CDBar:UpdateButtons( data )

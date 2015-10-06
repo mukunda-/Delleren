@@ -14,8 +14,15 @@ DellerenAddon = LibStub("AceAddon-3.0"):NewAddon( "Delleren",
 local Delleren = DellerenAddon
 
 -------------------------------------------------------------------------------
-Delleren.version  = VERSION
-Delleren.unlocked = false
+Delleren.version    = VERSION
+Delleren.unlocked   = false
+Delleren.init_funcs = {}
+
+-------------------------------------------------------------------------------
+function Delleren:AddSetup( func )
+	
+	table.insert( self.init_funcs, func )
+end
 
 -------------------------------------------------------------------------------
 function Delleren:InitMasque()
@@ -31,10 +38,10 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren:Setup()
-	self.MinimapButton:Init()
 	self:InitMasque()
+
+	for _,init in pairs( self.init_funcs ) do
+		init()
+	end
 	
-	self.Indicator:Init()
-	self.CDBar:Init()
-	self.QueryList:Init()
 end

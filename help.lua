@@ -23,7 +23,7 @@ Delleren.Help = {
 -------------------------------------------------------------------------------
 -- Start a help request.
 --
--- @param unit unitID that is making the request.
+-- @param unit Name of player that is making the request.
 -- @param id   ID of spell/item being requested.
 -- @param item True if this is an item request.
 -- @param buff True if we are expecting an aura to be cast on us.
@@ -38,6 +38,15 @@ function Delleren.Help:Start( unit, id, item, buff )
 	self.pulse  = GetTime() + 1
 	
 	Delleren:PlaySound( "HELP" )
+	
+	Delleren:SendMessage( "DELLEREN_HELP_START", {
+		name = unit;
+		id   = id;
+		item = item;
+		buff = buff;
+	})
+	
+	self:SendPulseMessage()
 	
 	local unit_name = Delleren:UnitNameColored( self.unit )
 	local request_text
@@ -65,33 +74,73 @@ function Delleren.Help:Start( unit, id, item, buff )
 end
 
 -------------------------------------------------------------------------------
+function Delleren.Help:SendPulseMessage()
+	Delleren:SendMessage( "DELLEREN_HELP_PULSE", {
+		name   = self.unit;
+		id     = self.spell;
+		item   = self.item;
+		buff   = self.buff;
+		failed = true;
+	})
+end
+
+-------------------------------------------------------------------------------
 -- Returns true if the requested spell or item is on cooldown.
 --
 function Delleren.Help:RequestOnCD()
+	local start, duration
 	if not self.item then
-		local start, duration, enable = GetSpellCooldown( self.spell )
-		if duration == 0 then return false end
-		if duration <= 1.6 then return false end
-		local t = GetTime() - start
-		t = duration - t
-		if t < 2 then return false end
-		
-		-- on cd
-		return true
+		start, duration = GetSpellCooldown( self.spell )
 	else
-		-- TODO
+		start, duration = GetItemCooldown( self.spell )
 	end
+	duration = duration or 0
+	
+	if duration == 0 then return false end
+	if duration <= 1.6 then return false end
+	local t = GetTime() - start
+	t = duration - t
+	if t < 2 then return false end
+	
+	-- on cd
+	return true
 end
 
 -------------------------------------------------------------------------------
 function Delleren.Help:Fail()
+	if not self.active then return end
+	
 	Delleren:PlaySound( "FAIL" )
 	Delleren.Indicator:SetAnimation( "HELP", "FAILURE" )
 	self.active = false
+	
+	Delleren:SendMessage( "DELLEREN_HELP_END", {
+		name   = self.unit;
+		id     = self.spell;
+		item   = self.item;
+		buff   = self.buff;
+		failed = true;
+	}) 
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Help:Success()
+	if not self.active then return end
+	
+	Delleren.Indicator:SetAnimation( "HELP", "SUCCESS" )
+	self.active = false
+	
+	Delleren:SendMessage( "DELLEREN_HELP_END", {
+		name   = self.unit;
+		id     = self.spell;
+		item   = self.item;
+		buff   = self.buff;
+	})
 end
 
 -------------------------------------------------------------------------------
 function Delleren.Help:Update()
+	if not self.active then return end
 	
 	local t = GetTime() - self.time
 	
@@ -99,6 +148,7 @@ function Delleren.Help:Update()
 		self.pulse = self.pulse + 1
 		Delleren.Indicator:SetAnimation( "HELP", "HELP" )
 		Delleren:PlaySound( "HELP" )
+		self:SendPulseMessage()
 	end
 	
 	-- if the requested spell or item is on cd, cancel the help request

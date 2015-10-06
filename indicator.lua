@@ -23,6 +23,33 @@ Delleren.Indicator = {
 }
 
 -------------------------------------------------------------------------------
+Delleren:AddSetup( function()
+	local self = Delleren.Indicator
+	
+	local frame = CreateFrame( "Button", "DellerenIndicator", UIParent )
+	self.frame = frame
+	
+	--
+	--frame:SetResizable( true )
+	--frame:SetMinResize( 16, 16 )
+	frame:SetPoint( "CENTER", nil, 0, 0 )
+	frame:EnableMouse( false )
+	frame:Hide()
+	
+	frame.text = frame:CreateFontString()
+	frame.text:SetFont( "Fonts\\FRIZQT__.TTF", 16, "OUTLINE" ) 
+	frame.text:SetPoint( "CENTER", self.frame, 0, 0 )
+	frame.text:Hide()
+	
+	local icon = self.frame:CreateTexture( nil, "BACKGROUND" )
+	icon:SetAllPoints( frame )
+	frame.icon = icon
+	icon:SetTexture( "Interface\\Icons\\spell_holy_sealofsacrifice" )
+	
+	Delleren:AddMasque( "BUTTON", frame, {Icon = frame.icon} )
+end)
+
+-------------------------------------------------------------------------------
 -- Interpolates two sets of color components.
 --
 local function ColorLerp( r1, g1, b1, r2, g2, b2, a )
@@ -56,30 +83,6 @@ function Delleren.Indicator:HideText()
 	self.frame.text:SetText("")
 end
 
--------------------------------------------------------------------------------
-function Delleren.Indicator:Init()
-	local frame = CreateFrame( "Button", "DellerenIndicator", UIParent )
-	self.frame = frame
-	
-	--
-	--frame:SetResizable( true )
-	--frame:SetMinResize( 16, 16 )
-	frame:SetPoint( "CENTER", nil, 0, 0 )
-	frame:EnableMouse( false )
-	frame:Hide()
-	
-	frame.text = frame:CreateFontString()
-	frame.text:SetFont( "Fonts\\FRIZQT__.TTF", 16, "OUTLINE" ) 
-	frame.text:SetPoint( "CENTER", self.frame, 0, 0 )
-	frame.text:Hide()
-	
-	local icon = self.frame:CreateTexture( nil, "BACKGROUND" )
-	icon:SetAllPoints( frame )
-	frame.icon = icon
-	icon:SetTexture( "Interface\\Icons\\spell_holy_sealofsacrifice" )
-	
-	Delleren:AddMasque( "BUTTON", frame, {Icon = frame.icon} )
-end
 
 -------------------------------------------------------------------------------
 function Delleren.Indicator:SetAnimation( source, state )
@@ -160,23 +163,7 @@ function Delleren.Indicator:UpdateAnimation()
 		self.frame.text:SetTextColor( 1,1,1,1 )
 	end
 end
---[[
--------------------------------------------------------------------------------
-function Delleren.Indicator:ShowHelpRequest( sender )
-	self.help.active = true
-	self.help.unit   = UnitIDFromName( sender )
-	self.help.time   = GetTime()
-	self.help.pulse  = GetTime() + 1
-	self:PlaySound( "HELP" )
-	
-	self:SetIndicatorText( UnitName( self.help.unit ))
-	self:SetAnimation( "HELP", "HELP" )
-	self.frame:Show()
-	
-	-- TODO: move this?
-	Delleren:EnableFrameUpdates()
-end]]
-
+ 
 -------------------------------------------------------------------------------
 function Delleren.Indicator:Hide()
 	self.frame:Hide()

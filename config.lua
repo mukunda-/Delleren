@@ -560,7 +560,7 @@ function Delleren.Config:CreateDB()
 end
 
 -------------------------------------------------------------------------------
-function Delleren.Config:Init()
+function Delleren.Config:InitPanel()
 	if self.init then return end
 	self.init = true
 	
@@ -581,15 +581,13 @@ function Delleren.Config:Init()
 	self:ResetTrackingEditorText()
 	
 	AceConfig:RegisterOptionsTable( "Delleren", self.options )
-	
-	
 end
 
 -------------------------------------------------------------------------------
 -- Open the configuration panel.
 --
 function Delleren.Config:Open()
-	self:Init()	
+	self:InitPanel()	
 	AceConfigDialog:Open( "Delleren" )
 end
 

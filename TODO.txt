@@ -2,6 +2,7 @@
 custom events for calling, for unitframe addons to use for highlighting help targets
 separate config panel into a load-on-demand addon	
 lightweight option, disabling status module		
+Delleren.Help:RequestOnCD() items			v
 
 ----------------------------------
 spell data table		v

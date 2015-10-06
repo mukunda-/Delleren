@@ -13,7 +13,8 @@ local LDB    = LibStub:GetLibrary( "LibDataBroker-1.1" )
 local DBIcon = LibStub:GetLibrary( "LibDBIcon-1.0"     )
 
 -------------------------------------------------------------------------------
-function Delleren.MinimapButton:Init()
+Delleren:AddSetup( function()
+	local self = Delleren.MinimapButton
 	
 	self.data = LDB:NewDataObject( "Delleren", {
 		type = "data source";
@@ -22,8 +23,8 @@ function Delleren.MinimapButton:Init()
 		OnClick = function(...) Delleren.MinimapButton:OnClick(...) end;
 		OnEnter = function(...) Delleren.MinimapButton:OnEnter(...) end;
 		OnLeave = function(...) Delleren.MinimapButton:OnLeave(...) end;
-	});
-end
+	})
+end)
 
 -------------------------------------------------------------------------------
 function Delleren.MinimapButton:OnLoad() 

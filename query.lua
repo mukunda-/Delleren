@@ -49,7 +49,6 @@ Delleren.Query = {
 function Delleren.Query:Start( list, item, buff, manual, players )
 	if self.active then return end -- query in progress already
 	
-	
 	if players == nil or #players == 0 then
 	
 		-- default player priority setup
@@ -82,6 +81,14 @@ function Delleren.Query:Start( list, item, buff, manual, players )
 	
 	Delleren.Indicator:Show()
 	Delleren.Indicator:SetAnimation( "QUERY", "POLLING" )
+	
+	Delleren:SendMessage( "DELLEREN_CALL_START", {
+		buff = buff;
+		list = list;
+		item = item;
+		manual = manual;
+		players = players;
+	})
 	
 	if not Delleren.Help.active then
 		Delleren.Indicator:HideText()
@@ -162,6 +169,7 @@ function Delleren.Query:Start( list, item, buff, manual, players )
 	end
 	
 	Delleren:EnableFrameUpdates()
+	
 end
 
 -------------------------------------------------------------------------------
@@ -178,17 +186,62 @@ function Delleren.Query:SendCheck( list )
 	
 	Delleren:Comm( "CHECK", data, "RAID" )
 	
+	Delleren:SendMessage( "DELLEREN_CALL_CHECK", {
+		list = list; 
+		item = item;
+	})
+	
 	self.checked = true
 end
 
 -------------------------------------------------------------------------------
+function Delleren.Query:EndRequest()
+	if not self.active or not self.requested then return end
+	
+	self.requested = false
+	
+	Delleren:SendMessage( "DELLEREN_CALL_REQ_END", {
+		buff = self.buff;
+		item = self.item;
+		id   = self.spell;
+		name = self.unit;
+	})
+end
+
+-------------------------------------------------------------------------------
+function Delleren.Query:Success()
+	if not self.active then return end
+	
+	self:EndRequest()
+	
+	Delleren.Indicator:SetAnimation( "QUERY", "SUCCESS" )
+	self.active = false
+	
+	Delleren:SendMessage( "DELLEREN_CALL_END", {
+		buff = self.buff;
+		item = self.item;
+		id   = self.spell;
+		name = self.unit;
+	})
+end
+
+-------------------------------------------------------------------------------
 function Delleren.Query:Fail()
-	if self.active then
-		Delleren:PlaySound( "FAIL" )
-		Delleren.Indicator:SetAnimation( "QUERY", "FAILURE" )
-		self.active = false
-		Delleren.QueryList:Hide()
-	end
+	if not self.active then return end
+	
+	self:EndRequest()
+	
+	Delleren:PlaySound( "FAIL" )
+	Delleren.Indicator:SetAnimation( "QUERY", "FAILURE" )
+	self.active = false
+	Delleren.QueryList:Hide()
+	
+	Delleren:SendMessage( "DELLEREN_CALL_END", {
+		buff = self.buff;
+		item = self.item;
+		id   = self.spell;
+		name = self.unit;
+	})
 end
 
 -------------------------------------------------------------------------------
@@ -215,7 +268,7 @@ function Delleren.Query:UpdateAutoRequest()
 			end
 		end
 	end
-		 
+	
 end
 
 -------------------------------------------------------------------------------
@@ -248,6 +301,7 @@ end
 
 -------------------------------------------------------------------------------
 function Delleren.Query:Update()
+	if not self.active then return end
 	
 	if UnitIsDeadOrGhost( "player" ) then
 		self:Fail()
@@ -474,10 +528,15 @@ function Delleren.Query:RequestCD()
 			end
 		end
 		
+		-- this is for weakauras to intercept
+		-- does not work cross realm.
+		SendAddonMessage( "DellerenC", "HELP " ..
+			(self.buff and "+ " or "- ") .. (self.item and "+ " or "- ")
+			.. self.spell, "WHISPER", self.unit )
+		
 		Delleren:PlaySound( "MANCALL" )
 		Delleren.Indicator:SetAnimation( "QUERY", "MANCALL" )
 	end
-	
 	
 	if not Delleren.Help.active then
 		
@@ -502,6 +561,13 @@ function Delleren.Query:RequestCD()
 		Delleren.Indicator:SetIcon( request_icon )
 	
 	end
+	
+	Delleren:SendMessage( "DELLEREN_CALL_REQ_START", {
+		buff = self.buff;
+		item = self.item;
+		id   = self.spell;
+		name = self.unit;
+	})
 	 
 	return true 
 end

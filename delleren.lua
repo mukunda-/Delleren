@@ -133,8 +133,7 @@ function Delleren:OnUnitSpellcastSucceeded( event, unitID, spell, rank,
 			if (not self.Query.item and spellID == self.Query.spell) or
 			   (self.Query.item and spell == GetItemSpell( self.Query.spell )) then
 				
-				self.Indicator:SetAnimation( "QUERY", "SUCCESS" )
-				self.Query.active = false
+				Delleren.Query:Success()
 			end
 		end
 	end
@@ -144,8 +143,8 @@ function Delleren:OnUnitSpellcastSucceeded( event, unitID, spell, rank,
 		if (not self.Help.item and spellID == self.Help.spell) or
 		   (self.Help.item and spell == GetItemSpell( self.Help.spell )) then
 		   
-			self.Indicator:SetAnimation( "HELP", "SUCCESS" )
-			self.Help.active = false
+			self.Help:Success()
+			
 		end
 	end
 end
@@ -170,13 +169,12 @@ function Delleren:OnAuraApplied( spellID, source, dest )
 	   
 		if dest == UnitGUID( "player" ) then
 			
-			self.Indicator:SetAnimation( "QUERY", "SUCCESS" )
-			self.Query.active = false
+			Delleren.Query:Success()
 			
 		else
 			
 			-- cd was cast on someone else! find another one!
-			self.Query.requested = false
+			Delleren.Query:EndRequest()
 		end
 	end
 	
@@ -188,14 +186,11 @@ function Delleren:OnAuraApplied( spellID, source, dest )
  
 		if dest == UnitGUID( self.Help.unit ) then
 			
-			self.Indicator:SetAnimation( "HELP", "SUCCESS" )
-			self.Help.active = false
+			self.Help:Success() 
 			
 		else
 			
-			self:PlaySound( "FAIL" )
-			self.Indicator:SetAnimation( "HELP", "FAILURE" )
-			self.Help.active = false
+			self.Help:Fail() 
 		end
 	end
 end
@@ -437,7 +432,7 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		end
 		
 		-- end current request and try for another target.
-		self.Query.requested = false
+		Delleren.Query:EndRequest()
 		
 	elseif msg == "STATUS" then
 		
@@ -528,9 +523,8 @@ end
 --
 function Delleren:OnFrame()
 	self.Status:PeriodicRefresh()
-	
-	if self.Query.active then self.Query:Update() end
-	if self.Help.active  then self.Help:Update()  end
+	self.Query:Update()
+	self.Help:Update()
 	
 	if self.Indicator.shown then
 		self.Indicator:UpdateAnimation()

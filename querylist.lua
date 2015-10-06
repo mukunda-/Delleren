@@ -25,7 +25,9 @@ Delleren.QueryList = {
 }
 
 -------------------------------------------------------------------------------
-function Delleren.QueryList:Init()
+Delleren:AddSetup( function()
+	local self = Delleren.QueryList
+	
 	self.frame = CreateFrame( "Frame", "DellerenQueryList", UIParent )
 	table.insert( UISpecialFrames, "DellerenQueryList" )
 	
@@ -37,9 +39,8 @@ function Delleren.QueryList:Init()
 	self.frame.bg:SetAllPoints()
 	self.frame:EnableMouse( true )
 	  
-	self.frame:SetScript( "OnHide", Delleren.QueryList.OnHide )
-	 
-end
+	self.frame:SetScript( "OnHide", Delleren.QueryList.OnHide ) 
+end)
 
 -------------------------------------------------------------------------------
 local function GetRealCursorPosition()

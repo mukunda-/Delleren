@@ -10,9 +10,10 @@ embeds.xml
 init.lua
 locale\index.xml
 
+config.lua
+
 cdbar.lua
 cdbutton.lua
-config.lua
 delleren.lua
 help.lua
 ignore.lua
@@ -24,5 +25,7 @@ sounds.lua
 spelldata.lua
 status.lua
 querylist.lua
+
+api.lua
 
 startup.lua
