@@ -86,7 +86,7 @@ function CDButton:OnEnter()
 		local _,cls = UnitClass( p.name )
 		left_color = RAID_CLASS_COLORS[cls].colorStr
 		
-		if not self.delleren then
+		if not p.delleren then
 			left_text = left_text .. "*"
 		end
 		

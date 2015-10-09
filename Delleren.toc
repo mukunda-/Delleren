@@ -4,7 +4,7 @@
 ## Author: mukunda
 ## SavedVariables: DellerenAddonSaved
 ## OptionalDeps: Masque
-## Version: 1.3.8
+## Version: 1.4.0
 embeds.xml
 
 init.lua
@@ -15,6 +15,7 @@ config.lua
 cdbar.lua
 cdbutton.lua
 delleren.lua
+flasher.lua
 help.lua
 ignore.lua
 indicator.lua 

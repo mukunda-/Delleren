@@ -56,9 +56,16 @@ local DB_DEFAULTS = {
 		locked = false;
 		
 		calling = {	
-			whisper  = true;
-			localize = true;
-			dellbias = true;
+			whisper    = true;
+			localize   = true;
+			dellbias   = true;
+			raidwarn_d = false;
+			raidwarn_n = false;
+			raidwarn_fallback = true;
+			markself   = 0;
+			highlight  = true;
+			mark       = 0;
+			flash      = true;
 		};
 		
 		indicator = {
@@ -153,39 +160,109 @@ local OPTIONS_TABLE = {
 			type = "group";
 			args = {
 				whisperdesc = {
-					order = 1;
+					order = 11;
 					name = L["Whisper Option Description"];
 					type = "description";
 				};
 				whisper = {
-					order = 2;
+					order = 12;
 					name = L["Enable Whispers"];
 					type = "toggle";
 					set = function( info, val ) Delleren.Config:SetCallingWhisper( val ) end;
 					get = function( info ) return Delleren.Config.db.profile.calling.whisper end;
 				};
+				
 				localizedesc = {
-					order = 3;
-					name = L["Localize Whisper Description"];
+					order = 21;
+					name = "\n" .. L["Localize Whisper Description"];
 					type = "description";
 				};
 				localize = {
-					order = 4;
+					order = 22;
 					name = L["Localize Whispers"];
 					type = "toggle";
 					set = function( info, val ) Delleren.Config.db.profile.calling.localize = val end;
 					get = function( info ) return Delleren.Config.db.profile.calling.localize end;
 				};
+				
 				dellbiasdesc = {
-					order = 5;
-					name = L["Prefer Delleren Players Description"];
+					order = 31;
+					name = "\n" .. L["Prefer Delleren Players Description"];
 					type = "description";
 				};
 				dellbias = {
+					order = 32;
 					name = L["Prefer Delleren Players"];
 					type = "toggle";
 					set = function( info, val ) Delleren.Config.db.profile.calling.dellbias = val end;
 					get = function( info ) return Delleren.Config.db.profile.calling.dellbias end;
+				};
+				
+				raidwarndesc = {
+					order = 41;
+					name = "\n" .. L["Raid Warning Desc"];
+					type = "description";
+				};
+				raidwarn_nodell = {
+					order = 42;
+					name = L["Announce when calling from players without Delleren"];
+					type = "toggle";
+					width = "full";
+					set = function( info, val ) Delleren.Config.db.profile.calling.raidwarn_n = val end;
+					get = function( info ) return Delleren.Config.db.profile.calling.raidwarn_n end;
+				};
+				raidwarn_dell = {
+					order = 43;
+					name = L["Announce when calling from players with Delleren"];
+					type = "toggle";
+					width = "full";
+					set = function( info, val ) Delleren.Config.db.profile.calling.raidwarn_d = val end;
+					get = function( info ) return Delleren.Config.db.profile.calling.raidwarn_d end;
+				};
+				raidwarn_fallback = {
+					order = 44;
+					name = L["Fallback to raid-chat"];
+					type = "toggle";
+					width = "full";
+					set = function( info, val ) Delleren.Config.db.profile.calling.raidwarn_fallback = val end;
+					get = function( info ) return Delleren.Config.db.profile.calling.raidwarn_fallback end;
+				};
+				
+				markdesc = {
+					order = 51;
+					name = "\n" .. L["Raid Marker Desc"];
+					type = "description";
+				};
+				
+				mark = {
+					order = 52;
+					name = L["Raid Marker"];
+					type = "select";
+					values = { [0] = L["Don't Mark"];
+							   [1] = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:0|t " .. RAID_TARGET_1;
+							   [2] = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_2:0|t " .. RAID_TARGET_2;
+							   [3] = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_3:0|t " .. RAID_TARGET_3;
+					           [4] = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_4:0|t " .. RAID_TARGET_4; 
+							   [5] = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_5:0|t " .. RAID_TARGET_5;
+							   [6] = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_6:0|t " .. RAID_TARGET_6;
+							   [7] = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_7:0|t " .. RAID_TARGET_7;
+							   [8] = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:0|t " .. RAID_TARGET_8 };
+							   
+					set = function( info, val ) Delleren.Config.db.profile.calling.mark = val end;
+					get = function( info ) return Delleren.Config.db.profile.calling.mark end;
+				};
+				
+				flashdesc = {
+					order = 61;
+					name = "\n" .. L["Flash Unit Desc"];
+					type = "description";
+				};
+				flash = {
+					order = 62;
+					name = L["Flash Unit Frames"];
+					type = "toggle";
+					set = function( info, val ) Delleren.Config.db.profile.calling.flash = val end;
+					get = function( info ) return Delleren.Config.db.profile.calling.flash end;
 				};
 			};
 		};
@@ -589,6 +666,10 @@ end
 function Delleren.Config:Open()
 	self:InitPanel()	
 	AceConfigDialog:Open( "Delleren" )
+	
+	-- hack to fix the scrollbar missing on the first page when you
+	-- first open the panel
+	LibStub("AceConfigRegistry-3.0"):NotifyChange( "Delleren" )
 end
 
 -------------------------------------------------------------------------------

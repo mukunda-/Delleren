@@ -21,7 +21,8 @@ setmetatable( L, {
 	-- that will replace {1}, {2}, etc in the text.
 	__call = function( table, key, ... )
 		for i = 1, select( "#", ... ) do
-			key = string.gsub( key, "{" .. i .. "}", select( i, ... ) )
+			local text = select( i, ... )
+			key = string.gsub( key, "{" .. i .. "}", text )
 		end
 		return key
 	end;
@@ -52,9 +53,19 @@ setmetatable( L, {
 --L["Calling"]
 L["Whisper Option Description"] = "Whispers are used to call for spells from players without Delleren installed. If you disable whispers, you are expected to call for your spell manually (e.g. over voice-chat)."
 --L["Enable Whispers"]
-L["Localize Whisper Description"] = "Disable localize whispers to always have whispers sent in English rather than based on your locale. This is recommended if you don't personally speak english but often play with players that do.";
+L["Localize Whisper Description"] = "Disable localize whispers to always have whispers sent in English rather than based on your locale. This is recommended if you don't personally speak english but often play with players that do."
 --L["Localize Whispers"]
-L["Prefer Delleren Players Description"] = "Prefer Delleren enabled players over normal players. This will cause query filters to choose players with Delleren installed over other players, even if they have a lower priority in the query filter.";
+L["Prefer Delleren Players Description"] = "Prefer Delleren enabled players over normal players. This will cause query filters to choose players with Delleren installed over other players, even if they have a lower priority in the query filter."
+--L["Prefer Delleren Players"]
+L["Raid Warning Desc"] = "While in a raid, Delleren can also announce your callout as a raid-warning (/rw chat) to help players without Delleren to not miss the whisper, and/or just to let other people in your raid know about your request. This requires raid assist. If you don't have assist, then the last option controls whether or not to fall back to raid-chat instead of raid-warning."
+--L["Announce when calling from players without Delleren"]
+--L["Announce when calling from players with Delleren"]
+L["Raid Marker Desc"] = "Icon to mark yourself with if you call for a spell. This requires raid-assist."
+--L["Raid Marker"]
+--L["Don't Mark"]
+L["Flash Unit Desc"] = "Flash players in your unit frames when they call for a spell from you."
+--L["Flash Unit Frames"]
+
 
 --L["Indicator"]
 --L["Frame Size"]
@@ -159,6 +170,9 @@ L["Editor Help"] = "Add or remove which spells are tracked here. Enter spell IDs
 -------------------
 
 --L["I need {1}."]
+--L["Use {1}."]
+--L[{1}, give {2} {3}.]
+--L["{1}, use {2}."]
 
 
 -----------------------

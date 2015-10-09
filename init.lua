@@ -4,7 +4,7 @@
 -- See LICENSE-DELLEREN.TXT
 -------------------------------------------------------------------------------
 
-local VERSION = "1.3.8"
+local VERSION = "1.4.0"
 
 -------------------------------------------------------------------------------
 DellerenAddon = LibStub("AceAddon-3.0"):NewAddon( "Delleren", 

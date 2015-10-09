@@ -37,6 +37,12 @@ function Delleren.Help:Start( unit, id, item, buff )
 	self.time   = GetTime()
 	self.pulse  = GetTime() + 1
 	
+	if Delleren.Config.db.profile.calling.flash then
+		Delleren.Flasher:Start( self.unit )
+		Delleren.Flasher:Flash()
+		Delleren:ScheduleTimer( function() Delleren.Flasher:Flash() end, 0.4 )
+	end
+	
 	Delleren:PlaySound( "HELP" )
 	
 	Delleren:SendMessage( "DELLEREN_HELP_START", {
@@ -110,6 +116,7 @@ end
 function Delleren.Help:Fail()
 	if not self.active then return end
 	
+	Delleren.Flasher:Stop()
 	Delleren:PlaySound( "FAIL" )
 	Delleren.Indicator:SetAnimation( "HELP", "FAILURE" )
 	self.active = false
@@ -127,6 +134,7 @@ end
 function Delleren.Help:Success()
 	if not self.active then return end
 	
+	Delleren.Flasher:Stop()
 	Delleren.Indicator:SetAnimation( "HELP", "SUCCESS" )
 	self.active = false
 	
@@ -149,6 +157,8 @@ function Delleren.Help:Update()
 		Delleren.Indicator:SetAnimation( "HELP", "HELP" )
 		Delleren:PlaySound( "HELP" )
 		self:SendPulseMessage()
+		Delleren.Flasher:Flash()
+		Delleren:ScheduleTimer( function() Delleren.Flasher:Flash() end, 0.4 )
 	end
 	
 	-- if the requested spell or item is on cd, cancel the help request

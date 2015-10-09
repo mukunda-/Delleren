@@ -525,6 +525,7 @@ function Delleren:OnFrame()
 	self.Status:PeriodicRefresh()
 	self.Query:Update()
 	self.Help:Update()
+	self.Flasher:Update()
 	
 	if self.Indicator.shown then
 		self.Indicator:UpdateAnimation()
@@ -814,7 +815,11 @@ function SlashCmdList.DELLEREN( msg )
 		 
 		-- this is a police quest reference
 		Delleren:Print( L["My what a filthy mind you have!"] )
-		
+
+	elseif args[1] == "test" then
+		 
+		Delleren:Print( "Testing function." ) 
+
 	else
 		
 		Delleren:Print( L["Command listing:"] )

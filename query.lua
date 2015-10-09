@@ -199,6 +199,7 @@ function Delleren.Query:EndRequest()
 	if not self.active or not self.requested then return end
 	
 	self.requested = false
+	self:ClearRaidMarker()
 	
 	Delleren:SendMessage( "DELLEREN_CALL_REQ_END", {
 		buff = self.buff;
@@ -470,6 +471,73 @@ function Delleren.Query:PopRequest()
 end
 
 -------------------------------------------------------------------------------
+local function NoRaidAssist()
+	return not IsInRaid() or not (UnitIsGroupLeader("player") 
+	                              or UnitIsGroupAssistant("player") )
+end
+
+-------------------------------------------------------------------------------
+-- Announce the current call to the raid.
+--
+function Delleren.Query:AnnounceRaid()
+	
+	if not IsInRaid() then return end
+	
+	local name
+	if self.item then
+		_,name = GetItemInfo( self.spell )
+	else
+		name = GetSpellLink( self.spell )
+	end
+	
+	local msg
+	if self.buff then
+		msg = L( "{1}, give {2} {3}.", self.unit, UnitName( "player" ), name )
+	else
+		msg = L( "{1}, use {2}.", self.unit, name )
+	end
+
+	if not NoRaidAssist() then 	
+		SendChatMessage( msg, "RAID_WARNING" )
+	elseif Delleren.Config.db.profile.calling.raidwarn_fallback then
+		SendChatMessage( msg, "RAID" )
+	else
+		-- all that work for nothing!
+	end
+end
+
+-------------------------------------------------------------------------------
+-- Mark self according to config.
+--
+function Delleren.Query:SetRaidMarker()
+
+	if NoRaidAssist() then return end
+	
+	local mark = Delleren.Config.db.profile.calling.mark
+	if mark == 0 then return end 
+	
+	self.oldmark = GetRaidTargetIndex( "player" )
+	SetRaidTarget( "player", 0 )
+	SetRaidTarget( "player", mark )
+end
+
+-------------------------------------------------------------------------------
+-- Clear self mark.
+--
+function Delleren.Query:ClearRaidMarker()
+	if NoRaidAssist() then return end
+	
+	local mark = Delleren.Config.db.profile.calling.mark
+	if mark == 0 then return end 
+	if GetRaidTargetIndex( "player" ) == mark then
+		SetRaidTarget( "player", 0 )
+		if self.oldmark then
+			SetRaidTarget( "player", self.oldmark )
+		end
+	end
+end
+
+-------------------------------------------------------------------------------
 -- Pop the top of the query list and make a request. 
 --
 -- @returns true if a request was made, false if it's already in progress
@@ -515,16 +583,29 @@ function Delleren.Query:RequestCD()
 		Delleren:Comm( "GIVE", msgdata, "WHISPER", self.unit )
 		Delleren:PlaySound( "CALL" )
 		Delleren.Indicator:SetAnimation( "QUERY", "CALL" )
+		
+		if Delleren.Config.db.profile.calling.raidwarn_d then
+			self:AnnounceRaid()
+		end
 	else
-		local spell_name = string.upper( GetSpellInfo( self.spell ) )
+		local spell_name = GetSpellLink( self.spell )
 		
 		if Delleren.Config.db.profile.calling.whisper then
 			if Delleren.Config.db.profile.calling.localize then
 				SendChatMessage( "************************", "WHISPER", nil, self.unit )
-				SendChatMessage( L( "I need {1}.", spell_name ), "WHISPER", nil, self.unit )
+				
+				if self.buff then
+					SendChatMessage( L( "I need {1}.", spell_name ), "WHISPER", nil, self.unit )
+				else
+					SendChatMessage( L( "Use {1}.", spell_name ), "WHISPER", nil, self.unit )
+				end
 			else
 				SendChatMessage( "************************", "WHISPER", nil, self.unit )
-				SendChatMessage( "I need " .. spell_name .. ".", "WHISPER", nil, self.unit )
+				if self.buff then
+					SendChatMessage( "I need " .. spell_name .. ".", "WHISPER", nil, self.unit )
+				else
+					SendChatMessage( "Use " .. spell_name .. ".", "WHISPER", nil, self.unit )
+				end
 			end
 		end
 		
@@ -536,6 +617,10 @@ function Delleren.Query:RequestCD()
 		
 		Delleren:PlaySound( "MANCALL" )
 		Delleren.Indicator:SetAnimation( "QUERY", "MANCALL" )
+		
+		if Delleren.Config.db.profile.calling.raidwarn_n then
+			self:AnnounceRaid()
+		end
 	end
 	
 	if not Delleren.Help.active then
@@ -568,6 +653,8 @@ function Delleren.Query:RequestCD()
 		id   = self.spell;
 		name = self.unit;
 	})
+	
+	self:SetRaidMarker()
 	 
 	return true 
 end
