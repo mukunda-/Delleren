@@ -1,7 +1,6 @@
 
 separate config panel into a load-on-demand addon	
 lightweight option, disabling status module		
-highlight units frames on help request
 arrow on indicator to point if out of range
 
 
@@ -18,3 +17,4 @@ custom events for calling, for unitframe addons to use for highlighting help tar
 Delleren.Help:RequestOnCD() items			v
 /rw calling for cds					v
 mark self with icon if assist				v
+highlight units frames on help request		v
