@@ -303,8 +303,8 @@ function Delleren:GetSpellReadyTime( spell, item )
 			return duration - (GetTime() - start) 
 		end
 	else
-		if GetItemCount( v ) > 0 then
-			local start, duration, enable = GetItemCooldown( v )
+		if GetItemCount( spell ) > 0 then
+			local start, duration, enable = GetItemCooldown( spell )
 			if start == 0 then return 0 end
 			
 			return duration - (GetTime() - start)
@@ -346,6 +346,7 @@ function Delleren:HasCDReady( ignore_reserve, list, item )
 	
 	for k,v in ipairs( list ) do
 		local t = Delleren:GetSpellReadyTime( v, item )
+		
 		if t ~= nil and t <= 1.6 then return v end 
 	end
 end
@@ -396,6 +397,7 @@ function Delleren:OnCommReceived( prefix, packed_message, dist, sender )
 		local id = self:HasCDReady( false, data.ids, data.item )
 		
 		if id then
+			
 			self:RespondReady( sender, data.rid, id )
 		end
 		
