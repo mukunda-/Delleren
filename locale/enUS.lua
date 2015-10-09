@@ -11,8 +11,8 @@ local L = Delleren.Locale
 -------------------------------------------------------------------------------
 setmetatable( L, { 
 
-	-- Normally, the key is the translation in english. If a value isn't found
-	-- just return the key.
+	-- Normally, the key is the translation in english. 
+	-- If a value isn't found, just return the key.
 	__index = function( table, key ) 
 		return key 
 	end;
