@@ -54,6 +54,8 @@ function Delleren.Ignore:InitPanel()
 end
 
 -------------------------------------------------------------------------------
+-- Load the saved ignore table. Called after the addon loads.
+--
 function Delleren.Ignore:Load()
 	self.ignored = {}
 	for k,v in pairs( Delleren.Config.db.char.ignored ) do
