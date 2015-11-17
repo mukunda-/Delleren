@@ -716,7 +716,7 @@ end
 -------------------------------------------------------------------------------
 function Delleren.Status:CacheTalents()
 	self.myserial = self.myserial + 1
-	self.myspec = GetSpecializationInfo(GetSpecialization())
+	self.myspec = GetSpecializationInfo(GetSpecialization() or 1)
 	self.mytalents = ""
 	
 	for tier = 1,7 do
