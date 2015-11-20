@@ -468,8 +468,8 @@ function Delleren:Comm( msg, data, dist, target )
 		data.tar = UnitGUID( target )
 	end
 	
-	if dist == "RAID" and IsInGroup(LE_PARTY_CATEGORY_INSTANCE) 
-	   and IsInInstance() and not C_Garrison:IsOnGarrisonMap() then
+	if dist == "RAID" and IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+	   --and IsInInstance() and not C_Garrison:IsOnGarrisonMap() then -- thisbreaks ashran
 	
 		dist = "INSTANCE_CHAT"
 	end
