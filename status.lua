@@ -663,8 +663,8 @@ end
 -------------------------------------------------------------------------------
 function Delleren.Status:CheckPing()
 
-	if GetTime() - self.lastping > PING_REFRESH_TIME 
-	        and not UnitAffectingCombat( "player" ) then
+	if GetTime() - self.lastping > PING_REFRESH_TIME then
+	        --and not UnitAffectingCombat( "player" ) then -- bug making it timeout in combat.
 	
 		--[[
 		local data = {
